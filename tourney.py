@@ -300,8 +300,8 @@ class Tourney:
                 self.bankroll = cmd.arg
                 if self.bankroll > self.maxbankroll:
                     self.bankroll = self.maxbankroll
-                    self.pubout('%s set the initial bankroll to $%d' %\
-                                (cmd.id, self.bankroll))
+                self.pubout('%s set the initial bankroll to $%d' %\
+                            (cmd.id, self.bankroll))
 
         elif c == 'DOUBLE':
             if cmd.arg < 1:
