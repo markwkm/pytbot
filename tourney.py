@@ -1168,7 +1168,7 @@ e' % (anick,))
                     else:
                         activity[a] = ''
                     a += 1
-                if showhole:
+                if showhole and not p.folded:
                     hole = p.hand.showhole(False)
                 else:
                     hole = ''
@@ -1401,6 +1401,9 @@ e' % (anick,))
         self.board = []
         self.activelist = []
 
+        if hasattr(self, 'sidepots'):
+            delattr(self, 'sidepots')
+
         #FIXME: Start loading players from the waiting list here...
 
     def nlive(self):
@@ -1497,8 +1500,6 @@ e' % (anick,))
             
             self.bbacted = False
 
-            if hasattr(self, 'sidepots'):
-                delattr(self, 'sidepots')
 
             for player in self.players:
                 player.cmd = Command()
