@@ -58,10 +58,7 @@ class Hand:
                 if self.type == Hand.TYPE_ST or self.type == Hand.TYPE_SF:
                     result = 0
                 elif self.type == Hand.TYPE_FH:
-                    if self.lo == other.lo:
-                        result = 0
-                    else:
-                        result = cmp(self.lo, other.lo)
+                    result = cmp(self.lo, other.lo)
                 elif self.type == Hand.TYPE_2P:
                     if self.lo == other.lo:
                         result = self.checkkicker(other)
