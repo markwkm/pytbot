@@ -608,7 +608,7 @@ class Tourney:
                     allin = False
 
 
-            if sendstatus:
+            if sendstatus and not p.vacation:
                 log.logger.debug('Tourney.run:%s is next to act. (%d to call)' %(self.players[self.next2act].nick, self.curbet - self.players[self.next2act].action))
             
                 self.pubout('%s is next to act. (%d to call)' %\
