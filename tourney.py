@@ -1017,17 +1017,24 @@ e' % (anick,))
                 msg = '%2d|%3s%-9s|%8d|%8d|%6s' % (self.players.index(p) + 1, dealvac, p.nick, int(p.bankroll), int(p.inplay), status)
 
             if hasattr(self, 'sidepots'):
+                self.makepots()
                 if p.folded:
                     msg += '|    |        |'
                 else:
 
                     # Find the least populated pot in which this
-                    # player is involved
+                    # player is involved 
+                    self.pots.reverse()
                     for pot in self.pots:
                         if pot.inpot(p):
+                            potdex = self.pots.index(pot)
+                            continue
+                        else:
                             break
-                        msg += '| %2d |%8d|' % (len(pot.players), pot.value)
-                    
+                    msg += '| %2d |%8d|' % (len(self.pots[potdex].players),
+                                            self.pots[potdex].value)
+                            
+                    self.pots.reverse()
             else:
                 msg += '|    |        |'
             
@@ -1842,12 +1849,12 @@ e' % (anick,))
             buf += 'Turn : '
 	    buf += self.board[3].face(self.color) + ' '    
             self.potsize[Tourney.TURN-1] = self.pot
-            self.nplyin[Tourney.TURN-1] = self.active()
+            self.nplyin[Tourney.TURN-1] = self.nactive()
         elif self.round == Tourney.TURN:
             buf += 'River: '
             buf += self.board[4].face(self.color) + ' '    
             self.potsize[Tourney.RIVER-1] = self.pot
-            self.nplyin[Tourney.RIVER-1] = self.active()
+            self.nplyin[Tourney.RIVER-1] = self.nactive()
         self.round += 1
 
         self.pubout('Board:      %s' % self.printboard(self.round, self.color))
