@@ -1445,12 +1445,13 @@ class Tourney:
                 if timexp >= self.blindinterval:
                     self.loblind *= 2
                     self.hiblind = self.loblind * 2
+                    self.timestamp = self.dt.now()
                     blindmsg = 'Blinds will double in %d seconds.' %\
                                self.blindinterval
                 else:
                     blindmsg = 'Blinds will double in %d seconds.' % (self.blindinterval - timexp)
 
-            self.timestamp = self.dt.now()
+
 
             self.pubout(' ')
             self.pubout('The blinds are currently $%d and $%d.' %\
@@ -1985,6 +1986,8 @@ class Tourney:
         oldstamp = self.dbstamp
         self.dbstamp = int(time.time())
         if self.dbstamp == oldstamp:
+            log.logger.debug("Tourney timestamp collision.  Sleeping (%d)" %\
+                             (self.dbstamp,))
             time.sleep(1)
             self.dbstamp = int(time.time())
         
