@@ -179,7 +179,7 @@ class Tourney:
         p = self.pfromnick(cmd.id)
         pid = cmd.id
 
-        if (c in gamecmds or c in setupcmds) and p == None:
+        if (c in gamecmds or c in setupcmds) and (p == None or p.busted):
             self.noteout(pid, 'You must be in the game to use the %s command.' % cmd.cmd)
 
         elif c in actions and p.allin:
@@ -1019,7 +1019,7 @@ class Tourney:
                 place -= 1
                 q.busted = True
                 q.quit = False
-                self.players.remove(q)
+                #self.players.remove(q)
 
         if self.tourneyover():
             self.endtourney()
@@ -1150,7 +1150,7 @@ class Tourney:
     def tourneyover(self): return self.nlive() == 1
 
     def endtourney(self, abort = False):
-        log.logger.debug('Tourney.endtourney()')        
+        log.logger.debug('Tourney.endtourney()')
 
         if not abort:
             plist = self.activeplayers()
@@ -1164,6 +1164,10 @@ class Tourney:
 
         else:
             log.logger.info('Tourney.endtourney: Tourney aborted!')
+
+        for p in self.players:
+            if p.busted or p.quit:
+                self.players.remove(p)
 
         self.playing = False
 
