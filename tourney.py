@@ -1057,7 +1057,8 @@ class Tourney:
             # Compare hands and award pots
             log.logger.info('Hand over, current board is: %s' %\
                             self.printboard(self.round))
-            self.pubout('Board:      %s' % self.printboard(self.round))
+            if self.nactive() - self.nallin() > 1:
+                self.pubout('Board:      %s' % self.printboard(self.round))
             self.pubout("Players' hands:")
             self.showhands()
 
