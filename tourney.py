@@ -1138,6 +1138,8 @@ class Tourney:
         else:
             oldas = self.next2act
         nplayers = len(self.players)
+        if oldas >= nplayers:
+            oldas = nplayers - 1
         for offset in xrange(1, nplayers):
             newas = (oldas + offset) % nplayers 
             if(not self.players[newas].folded and
@@ -1357,7 +1359,7 @@ class Tourney:
 
                 # Heads-up
                 self.bb = self.nextactiveseat(self.bb)
-                self.sb = self.nextactiveseat(self.sb)
+                self.sb = self.nextactiveseat(self.bb)
                 self.button = self.sb
 
             self.next2act = self.nextactiveseat(self.bb)
