@@ -1462,8 +1462,8 @@ e' % (anick,))
 
             # Time to double blinds?
             if self.handsinterval > 0:
-                handstogo = self.handnum % self.handsinterval
-                if handstogo  ==  0:
+                handstogo = self.handsinterval - (self.handnum % self.handsinterval)
+                if handstogo  ==  self.handsinterval:
                     self.loblind *= 2
                     self.hiblind = self.loblind * 2
                     blindmsg = 'Blinds will double in %d hands.' %\
