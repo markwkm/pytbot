@@ -51,7 +51,9 @@ class Hand:
         result = 0
 
         if self.type == other.type:
+            log.logger.debug('Hand.__cmp__:Hand types equal')
             if self.hi == other.hi:
+                log.logger.debug('Hand.__cmp__:Hand hi equal')
 
                 # straights and straight flushes with equal
                 # high cards are equal
@@ -429,7 +431,7 @@ class Hand:
         str8hisym = card.ranksym(self.straighthi)
 
         if self.type not in [ Hand.TYPE_ST, Hand.TYPE_SF, Hand.TYPE_FH ]:
-            self.checkkicker(self)
+            self.prockickers()
 
         if self.type == Hand.TYPE_NP:
             buf += '%s ' % hisym
