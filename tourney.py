@@ -1837,17 +1837,17 @@ e' % (anick,))
             for i in xrange(3):
 	        buf += self.board[i].face(self.color) + ' '
             self.potsize[Tourney.FLOP-1] = self.pot
-            self.nplyin[Tourney.FLOP-1] = self.nlive()
+            self.nplyin[Tourney.FLOP-1] = self.nactive()
         elif self.round == Tourney.FLOP:
             buf += 'Turn : '
 	    buf += self.board[3].face(self.color) + ' '    
             self.potsize[Tourney.TURN-1] = self.pot
-            self.nplyin[Tourney.TURN-1] = self.nlive()
+            self.nplyin[Tourney.TURN-1] = self.active()
         elif self.round == Tourney.TURN:
             buf += 'River: '
             buf += self.board[4].face(self.color) + ' '    
             self.potsize[Tourney.RIVER-1] = self.pot
-            self.nplyin[Tourney.RIVER-1] = self.nlive()
+            self.nplyin[Tourney.RIVER-1] = self.active()
         self.round += 1
 
         self.pubout('Board:      %s' % self.printboard(self.round, self.color))
