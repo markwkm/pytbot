@@ -165,7 +165,7 @@ class Tourney:
         'RAISE', 'UNDO', 'JAM', 'POT']
         
         gamecmds = actions + ['ABORT', 'BACK', 'CARDS', 'KICK',
-        'VACATION', 'REMIND', 'QUIT', 'PASSWORD']
+        'VACATION', 'REMIND', 'QUIT', 'PASSWORD', 'POSITION', 'STACK']
 
         setupcmds = ['DOUBLE', 'BANKROLL', 'BLIND', 'START']
         
@@ -272,31 +272,51 @@ class Tourney:
                 self.privout(pid, 'There is currently no board to display.')
             else:
                 self.noteout(pid, 'Board:      %s' % self.printboard(self.round))
-                
+        elif c == 'POSITION':
+            if not self.playing:
+                self.privout(pid, 'There is currently no game.')
+            else:
+                self.noteout(pid, 'players:%2d position:%2d' % (self.nlive(),
+                                                                self.position(p)))
+        elif c == 'STACK':
+            if not self.playing:
+                self.privout(pid, 'There is currently no game.')
+            else:
+                self.noteout(pid, 'bankroll:%d  in play:%d' % (p.bankroll, p.inplay))
+
         elif c == 'BLIND':
-            self.loblind = cmd.arg
-            self.hiblind = 2 * self.loblind
-            self.pubout('%s set the blinds to %s-%s' %\
-                        (pid, self.loblind, self.hiblind))
+            if cmd.arg < 1:
+                self.privout(pid, 'blinds must be at least 1-2')
+            else:
+                self.loblind = cmd.arg
+                self.hiblind = 2 * self.loblind
+                self.pubout('%s set the blinds to %s-%s' %\
+                            (pid, self.loblind, self.hiblind))
 
         elif c == 'BANKROLL':
-            self.bankroll = cmd.arg
-            if self.bankroll > self.maxbankroll:
-                self.bankroll = self.maxbankroll
-            self.pubout('%s set the initial bankroll to $%d' %\
-                        (cmd.id, self.bankroll))
+            if cmd.arg < 1:
+                self.privout(pid, 'bankroll must be at least $1')
+            else:
+                self.bankroll = cmd.arg
+                if self.bankroll > self.maxbankroll:
+                    self.bankroll = self.maxbankroll
+                    self.pubout('%s set the initial bankroll to $%d' %\
+                                (cmd.id, self.bankroll))
 
         elif c == 'DOUBLE':
-            msg = ('%s set the doubling interval to %s' % (pid, cmd.arg))
-            if self.handsflag:
-                self.handsflag = False
-                self.handsinterval = cmd.arg
-                msg += ' hands.'
+            if cmd.arg < 1:
+                self.privout(pid, 'doubling interval must be at least 1')
             else:
-                self.blindinterval = cmd.arg
-                msg += ' seconds.'
+                msg = ('%s set the doubling interval to %s' % (pid, cmd.arg))
+                if self.handsflag:
+                    self.handsflag = False
+                    self.handsinterval = cmd.arg
+                    msg += ' hands.'
+                else:
+                    self.blindinterval = cmd.arg
+                    msg += ' seconds.'
 
-            self.pubout(msg)
+                self.pubout(msg)
 
         elif c == 'START':
             if len(self.players) < 2:
@@ -635,10 +655,14 @@ class Tourney:
         if nlive - self.nquitters() == 1:
             self.endhand(False)
 
-        # Goofy hack for when the tourney is set up stupidly
+        # Heads up and both all in
         elif nlive == self.nallin() or p.allin:
             self.nextround()
 
+        ## Heads up and one of the blinds is short
+        #elif nlive - self.nallin() == 1:
+        #    self.nextround()
+        
         else:
 
             self.makepots()
@@ -1130,7 +1154,7 @@ class Tourney:
                                         (w.nick, myshare,
                                          Hand.TYPE_STR[w.hand.type],
                                          w.hand.rankorderstr()))
-                        self.pubout('High: %s wins $%d with %s %s' %\
+                        self.pubout('High: %s wins $%d with %s %s.' %\
                                     (w.nick, myshare,
                                      Hand.TYPE_STR[w.hand.type],
                                      w.hand.rankorderstr()))
@@ -1143,7 +1167,7 @@ class Tourney:
                             self.pubout('%s wins $%d' % (w.nick, pot.value))
                         else:
                             log.logger.info('Pot %d: %s wins $%d with %s %s' % (len(pot.players), w.nick, myshare, Hand.TYPE_STR[w.hand.type], w.hand.rankorderstr()))
-                            self.pubout('%s wins $%d with %s %s' %\
+                            self.pubout('%s wins $%d with %s %s.' %\
                                         (w.nick, myshare,
                                          Hand.TYPE_STR[w.hand.type],
                                          w.hand.rankorderstr()))
@@ -1841,4 +1865,27 @@ class Tourney:
         self.noteout(pid, "status - Print WRGPT-style status message.")
         self.noteout(pid, ' ')
         self.noteout(pid, "commands - List of dealer commands (*this* list!)")
+
+    def position(self, player):
+        '''Return the position of player. Positions numbers starts at
+        1 with the player to the immediate left of the dealer
+        (i.e. the small blind)'''
+
+        seat = self.sb
+        pos = 1
+        nlive = self.nlive()
+        for offset in xrange(nlive):
+            seat = (seat + offset) % nlive
+            log.logger.debug('Tourney.position: %s in seat %d position %d' %\
+                             (self.players[seat].nick, seat, pos))
+            if player.nick == self.players[seat].nick:
+                break
+            pos += 1
+
+        if pos > nlive:
+            pos = nlive
+        return pos
+            
+
+
 
