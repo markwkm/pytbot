@@ -17,7 +17,10 @@
 import log
 import sys
 import time
+from string import letters, digits
+from crypt import crypt
 from datetime import datetime
+from random import choice
 import MySQLdb
 
 from command import Command
@@ -66,6 +69,7 @@ class Tourney:
         self.nosb = False
         self.butflag = False
         self.bbacted = False
+        self.color = False
         self.curbet = 0
         self.minraise = 0
         self.maxaction = 0
@@ -99,6 +103,8 @@ class Tourney:
 
         log.logger.info('Tourney.replacepasswd: replacing password for %s:(%s)' % (name, newpswd))
 
+        salt = choice(letters+digits) + choice(letters+digits)
+        cpswd = crypt(newpswd, salt)
 
         try:
             db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
@@ -110,7 +116,7 @@ class Tourney:
         c = db.cursor()
 
         lines = c.execute("UPDATE player SET password='%s' where "
-                          "nick='%s'" % (newpswd, name))
+                          "nick='%s'" % (cpswd, name))
 
         db.commit()
         c.close()
@@ -124,7 +130,7 @@ class Tourney:
         actions = ['BET', 'CALL', 'CALLMAX', 'CHECK', 'FOLD', 'MAKE',
         'RAISE', 'UNDO', 'JAM', 'POT']
         
-        gamecmds = actions + ['ABORT', 'BACK', 'CARDS', 'KICK',
+        gamecmds = actions + ['ABORT', 'BACK', 'CARDS', 'COLOR', 'KICK',
         'VACATION', 'REMIND', 'QUIT', 'PASSWORD', 'POSITION', 'STACK']
 
         setupcmds = ['DOUBLE', 'BANKROLL', 'BLIND', 'START']
@@ -190,6 +196,13 @@ class Tourney:
         
         elif c == 'STATUS':
             self.prettyprint(pid)
+
+        elif c == 'COLOR':
+            if self.color:
+                self.pubout('%s has turned off colored cards.' % (pid,))
+            else:
+                self.pubout('%s has turned on colored cards.  Please complain loudly if this affects your ability to play.' % pid)
+            self.color = not self.color
 
         elif c == 'ABORT':
             self.pubout('%s has aborted the tournament!  Please finish this hand.' % pid)
@@ -293,9 +306,7 @@ class Tourney:
             self.aborted = True
 
         elif c == 'CARDS':
-            self.noteout(pid, 'Your hole cards are: %s %s' %\
-                         (p.hand.cards[0].face(),
-                          p.hand.cards[1].face()))
+            self.noteout(pid, 'Your hole cards are: %s' % (p.hand.showhole(self.color),))
 
         elif c == 'BACK':
             if not p.vacation:
@@ -379,8 +390,13 @@ class Tourney:
         # Add new players to player database
         if lines == 0:
             log.logger.debug("Adding nick %s (%s) to database" % (nick, pswd))
+            
+            # encrypt password for storage
+            salt = choice(letters+digits) + choice(letters+digits)
+            cpswd = crypt(pswd, salt)
+
             c.execute("INSERT into player (nick, password, bankroll) "
-                      "VALUES ('%s', '%s', 1000)" % (nick, pswd))
+                      "VALUES ('%s', '%s', 1000)" % (nick, cpswd))
 
         # Check for valid password
         else:
@@ -389,10 +405,15 @@ class Tourney:
                 log.logger.Warning("Found more than one entry in the player database for %s" % (anick,))
 
             log.logger.debug("Found nick %s (%s) in database" % (anick, apass))
-            
-            if pswd != apass:
-                self.privout(nick, "Invalid password.  Please try joining again.")
-                goodjoin = False
+
+            if apass != crypt(pswd, apass[:2]):
+                if apass == '':
+                    log.logger.warning('%s has an empty password in the databas\
+e' % (anick,))
+                    self.privout(nick, "Your password is empty.  Please use the PASSWORD command to change it.")
+                else:
+                    self.privout(nick, "Invalid password.  Please try joining again.")
+                    goodjoin = False
 
         if goodjoin:
             self.players.append(Player(nick, nick))
@@ -990,7 +1011,10 @@ class Tourney:
                     dealvac = 'D  '
             elif self.next2act == self.players.index(p):
                 dealvac = '>  '
-            msg = '%2d|%3s%-9s|%8d|%8d|%6s' % (self.players.index(p) + 1, dealvac, p.nick, int(p.bankroll), int(p.inplay), status)
+            if len(p.nick) > 9:
+                msg = '%2d|%3s%-.9s|%8d|%8d|%6s' % (self.players.index(p) + 1, dealvac, p.nick, int(p.bankroll), int(p.inplay), status)
+            else:
+                msg = '%2d|%3s%-9s|%8d|%8d|%6s' % (self.players.index(p) + 1, dealvac, p.nick, int(p.bankroll), int(p.inplay), status)
 
             if hasattr(self, 'sidepots'):
                 if p.folded:
@@ -1018,13 +1042,13 @@ class Tourney:
              buf += ''
         if nround == Tourney.FLOP:
             for n in xrange(3):
-                buf += self.board[n].face() + ' '
+	        buf += self.board[n].face(self.color) + ' '
         if nround == Tourney.TURN:
             for n in xrange(4):
-                buf += self.board[n].face() + ' '
+                buf += self.board[n].face(self.color) + ' '
         if nround == Tourney.RIVER:
             for n in xrange(5):
-                buf +=  self.board[n].face() + ' '
+                buf += self.board[n].face(self.color) + ' '
         return buf
 
     def pfromnick(self, nick):
@@ -1138,7 +1162,7 @@ class Tourney:
                         activity[a] = ''
                     a += 1
                 if showhole:
-                    hole = p.hand.showhole()
+                    hole = p.hand.showhole(self.color)
                 else:
                     hole = ''
                 query = "INSERT INTO action VALUES (%d, '%s', 'tourney', %d, '%s', '%s', '%s', '%s', %d, %d, %d, '%s')" %\
@@ -1249,7 +1273,7 @@ class Tourney:
                             (self.players[aseat].nick,
                              self.players[aseat].hand.showhole()))
             self.pubout('%-16s: %s' % (self.players[aseat].nick,
-                                         self.players[aseat].hand.showhole()))
+                                         self.players[aseat].hand.showhole(self.color)))
  
             self.fillhand(self.players[aseat])
             last = aseat
@@ -1568,7 +1592,7 @@ class Tourney:
             for p in self.players:
                 if not p.busted:
                     self.noteout(p.nick, 'Your hole cards are: %s' %\
-                                 p.hand.showhole())
+                                 p.hand.showhole(self.color))
 
                     # build strings for SQL query
                     playernums += "player%d," % (playernum,)
@@ -1811,17 +1835,17 @@ class Tourney:
         if self.round == Tourney.PREFLOP:
             buf += 'Flop : '
             for i in xrange(3):
-                buf += self.board[i].face() + ' '
+	        buf += self.board[i].face(self.color) + ' '
             self.potsize[Tourney.FLOP-1] = self.pot
             self.nplyin[Tourney.FLOP-1] = self.nlive()
         elif self.round == Tourney.FLOP:
             buf += 'Turn : '
-            buf += self.board[3].face() + ' '    
+	    buf += self.board[3].face(self.color) + ' '    
             self.potsize[Tourney.TURN-1] = self.pot
             self.nplyin[Tourney.TURN-1] = self.nlive()
         elif self.round == Tourney.TURN:
             buf += 'River: '
-            buf += self.board[4].face() + ' '    
+            buf += self.board[4].face(self.color) + ' '    
             self.potsize[Tourney.RIVER-1] = self.pot
             self.nplyin[Tourney.RIVER-1] = self.nlive()
         self.round += 1
