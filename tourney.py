@@ -405,15 +405,15 @@ class Tourney:
 
         p = self.players[self.next2act]
 
-        sendstatus = True
-
         # If at least two players do some kind of action, make sure a
         # broadcast message is sent even if the last action fails.
         niterations = 0
+        sendstatus = True
 
         while p.cmd.cmd != 'NOOP':
 
             niterations += 1
+
             tocall = self.curbet - p.action
 
             # Fold at the earliest opportunity.  Check if there's no bet.
@@ -533,7 +533,7 @@ class Tourney:
                     p.cmd.arg = tomake
                     niterations -= 1
                     continue
-                if tomake > tocall:
+                elif tomake > tocall:
                     p.cmd.cmd = 'RAISE'
                     p.cmd.arg = tomake - tocall - p.action
                     niterations -= 1
@@ -608,6 +608,14 @@ class Tourney:
                     allin = False
 
 
+            if sendstatus:
+                log.logger.debug('Tourney.run:%s is next to act. (%d to call)' %(self.players[self.next2act].nick, self.curbet - self.players[self.next2act].action))
+            
+                self.pubout('%s is next to act. (%d to call)' %\
+                            (self.players[self.next2act].nick,
+                             self.curbet - self.players[self.next2act].action))
+
+
         # All but one player has quit.  He wins.
         if self.nlive() - self.nquitters() == 1:
             self.endhand(False)
@@ -616,7 +624,7 @@ class Tourney:
 
             self.makepots()
 
-            if sendstatus or niterations > 1:
+            if sendstatus:
                 log.logger.debug('Tourney.run:%s is next to act. (%d to call)' %(self.players[self.next2act].nick, self.curbet - self.players[self.next2act].action))
             
                 self.pubout('%s is next to act. (%d to call)' %\
@@ -773,8 +781,17 @@ class Tourney:
             # Raise too small?
             if araise < self.minraise:
 
+                if p.bankroll <= tocall:
+
+                    # Not enough chips for the given raise
+                    log.logger.info('Tourney.RAISE: %s attempted to raise with insufficient chips to call' % p.nick)
+
+                    self.privout(p.nick, 'Insufficient chips to raise.  Please CALL or FOLD')
+                    # Don't advance seat
+                    advseat = False
+
                 # All-in raise?
-                if tocall + self.minraise > p.bankroll:
+                elif tocall + self.minraise > p.bankroll:
                     if self.nallin() > 0: self.sidepots = True;
                     self.lastbettor = self.players.index(p)
                     self.pot += p.bankroll
@@ -1174,15 +1191,16 @@ class Tourney:
                 log.logger.critical('Tourney.endtourney called with > 1 active player!')
 
             else:
-                self.pubout('The tourney is over.  %s wins!  Congratulations!' %plist[0].nick)
+                self.pubout('The tourney is over.  %s wins!  Congratulations!' % plist[0].nick)
                 log.logger.info('Tourney.endtourney: Tourney over, %s wins' % plist[0].nick)
 
         else:
             log.logger.info('Tourney.endtourney: Tourney aborted!')
 
-        for p in self.players:
-            if p.busted or p.quit:
-                self.players.remove(p)
+        #for p in self.players:
+        #    if p.busted or p.quit:
+        #        self.players.remove(p)
+        self.players = []
 
         self.playing = False
 
