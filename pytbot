@@ -37,12 +37,12 @@ class TBot(irc.IRCClient):
     def privout(self, user, msg):
         log.logger.debug('TBot.privout()')
         
-        log.chatlog.critical('[PRV->]%s' % (msg,))
+        log.chatlog.critical('[PRV->]%s' % (user, msg))
         self.msg(user, msg)
         #self.cprivmsg(self.channel, user, msg)
 
     def noteout(self, user, msg):
-        log.chatlog.critical('[NTE->]%s' % (msg,))
+        log.chatlog.critical('[NTE->%s]%s' % (user, msg))
         self.notice(user, msg)
         #self.cnotice(self.channel, user, msg)
 
