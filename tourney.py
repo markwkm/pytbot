@@ -1,50 +1,19 @@
-# commands to support
 #
-# join password
+#    Copyright (C) 2004 Paul Rotering
 #
-# quit (quit immediately.  Money in pot stays in pot)
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
 #
-# wait password - join waiting list - attempt auto join on completion of 
-#                                     tourney
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
 #
-# unwait
-#
-# status
-#
-# board
-#
-# cards
-# game (get description of current game)
-# rank 
-# top - top players by bankroll
-#
-# fold
-# call [amount] - call anything with no argument
-# check - warn if bet is not zero to you
-# raise [amount] - amount requied in NL game
-# make amount
-# toss [card1] [card 2] [...]  - cards numberd from 1...N.  
-#                                toss 0 to toss no cards
-#
-# undo
-#
-# ---------------------
-# double interval [hands]
-# bankroll amount
-# blind amount - set size of small blind
-# start - no joins after start.  Above params must be set before start
-# abort - play out current hand then go back to pre-start status
-# vacation [nick]
-# back
-# help
-# commands
-# deal [game number]
-# password new_password - must be in a game to use this
-# remind
-# list - list available games
-# motd
-# kick
-
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 import log
 import sys
 from datetime import datetime

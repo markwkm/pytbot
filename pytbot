@@ -1,5 +1,20 @@
 #!/usr/bin/env python
-
+#
+#    Copyright (C) 2004 Paul Rotering
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 from twisted.protocols import irc
 from twisted.internet import reactor, protocol
 
@@ -61,7 +76,7 @@ class TBot(irc.IRCClient):
     def joined(self, channel):
         """This will get called when the bot joins the channel."""
         
-        print "[I have joined %s]" % channel
+        log.logger.info('[I have joined %s]' % (channel,))
         self.channel = channel
 
     def noticed(self, user, channel, msg):
@@ -164,9 +179,10 @@ class TBotFactory(protocol.ClientFactory):
 
 if __name__ == '__main__':
     
-
     # create factory protocol and application
-    f = TBotFactory(sys.argv[1], sys.argv[2])
+    if len(sys.argv) == 1: channel = 'tourney'
+    else: channel = sys.argv[1]
+    f = TBotFactory(channel, 'UNUSED')
 
     # connect factory to this host and port
     reactor.connectTCP("irc.ircpoker.com", 6667, f)
