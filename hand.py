@@ -413,11 +413,11 @@ class Hand:
 
         return self.type
 
-    def showhole(self):
+    def showhole(self, color = False):
         log.logger.debug('Hand.showhole()')
 
         if len(self.cards) >= 2:
-            return '%2s %2s' % (self.cards[0].face(), self.cards[1].face())
+            return '%2s %2s' % (self.cards[0].face(color), self.cards[1].face(color))
         else:
             return ''
 

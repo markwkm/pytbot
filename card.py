@@ -63,10 +63,24 @@ class Card:
         log.logger.debug('Card.cardname()')
         return self.rankname() + ' of ' + self.suitname()
 
-    def face(self):
+    def face(self, color = False):
         log.logger.debug('Card.face()')
-        return '%c%c' % (Card.facerank[self.rank()],
-                         Card.facesuit[self.suit()])
+
+        r = Card.facerank[self.rank()]
+        s = Card.facesuit[self.suit()]
+        f = r + s
+
+        if color:
+            if s == 'c':
+                f = '\033[47m\033[32m%c%c\033[0;0m' % (r, s)
+            elif s == 'd':
+                f = '\033[47m\033[34m%c%c\033[0;0m' % (r, s)
+            elif s == 'h':
+                f = '\033[47m\033[31m%c%c\033[0;0m' % (r, s)
+            elif s == 's':
+                f = '\033[47m\033[30m%c%c\033[0;0m' % (r, s)
+                         
+        return f
 
 if __name__ == '__main__':
     import random
@@ -74,14 +88,14 @@ if __name__ == '__main__':
     bar = Card(random.randrange(0, 52))
     baz = Card(random.randrange(0, 52))
     for card in (foo, bar, baz):
-        print card, card.face(), card.rank(), card.suit(), card.suitname()
+        print card, card.face(True), card.rank(), card.suit(), card.suitname()
 
     for c1 in (foo, bar, baz):
         for c2 in (foo, bar, baz):
             diff = cmp(c1, c2)
             if diff > 0:
-                print '%s > %s' % (c1.face(), c2.face())
+                print '%s > %s' % (c1.face(True), c2.face(True))
             elif diff < 0:
-                print '%s < %s' % (c1.face(), c2.face())
+                print '%s < %s' % (c1.face(True), c2.face(True))
             else:
-                print '%s == %s' % (c1.face(), c2.face())
+                print '%s == %s' % (c1.face(True), c2.face(True))

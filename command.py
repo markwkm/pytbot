@@ -28,7 +28,7 @@ class Command:
         self.arg = ''
         self.handsflag = False
 
-        noarg = ['ABORT', 'BACK', 'BOARD', 'CARDS', 'CHECK',
+        noarg = ['ABORT', 'BACK', 'BOARD', 'CARDS', 'CHECK', 'COLOR',
                  'COMMANDS', 'FOLD', 'HELP', 'POSITION', 'QUIT',
                  'START', 'STATUS', 'UNDO']
 
