@@ -19,13 +19,49 @@ import log
 class Command:
     "Extracts protocol, id, command, and arg from mail filter input"
 
-    def __init__(self, proto='EMAIL', plid='', cmd='NOOP', arg=''):
+    def __init__(self, user='', liszt = []):
         log.logger.debug('Command.__init__()')
 
-        self.proto = proto
-        self.id = plid
-        self.cmd = cmd
-        self.arg = arg
+        self.proto = 'IRC'
+        self.id = user
+        self.cmd = 'NOOP'
+        self.arg = ''
+        self.handsflag = False
+
+        noarg = ['ABORT', 'BACK', 'BOARD', 'CARDS', 'CHECK',
+                 'COMMANDS', 'FOLD', 'HELP', 'QUIT', 'START',
+                 'STATUS', 'UNDO']
+
+        chararg = ['JOIN', 'PASSWORD', 'REMIND', 'VACATION']
+        intarg = ['BANKROLL', 'BET', 'BLIND', 'CALL', 'DOUBLE', 'MAKE',
+                  'RAISE']
+
+        onearg = chararg + intarg
+        
+        if len(liszt) > 0:
+            self.cmd = liszt[1].upper()
+
+
+            if self.cmd in onearg:
+                if len(liszt) < 3:
+                    if self.cmd == 'CALL':
+                        self.cmd = 'CALLMAX'
+                    else:
+                        self.arg = 'ERROR'
+                else:
+                    if self.cmd in intarg:
+                        try:
+                            self.arg = int(liszt[2])
+                        except:
+                            self.arg = 'ERROR'
+
+                        if self.cmd == 'DOUBLE' and len(liszt) >= 4:
+                            if liszt[3].upper() == 'HANDS':
+                                self.handsflag = True
+
+                    else:
+                        self.arg = liszt[2]
+
     def __str__(self):
         log.logger.debug('Command.__str__()')
 

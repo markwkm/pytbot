@@ -400,7 +400,7 @@ class Tourney:
             msg += 'in the tournament.'
             self.pubout(msg)
     
-    def run(self):
+    def run(self, newhand = False):
         log.logger.debug('Tourney.run()')
 
         p = self.players[self.next2act]
@@ -408,9 +408,12 @@ class Tourney:
         # If at least two players do some kind of action, make sure a
         # broadcast message is sent even if the last action fails.
         niterations = 0
-        sendstatus = True
+        if newhand: sendstatus = True
+        else: sendstatus = False
 
         while p.cmd.cmd != 'NOOP':
+
+            sendstatus = True
 
             niterations += 1
 
@@ -615,10 +618,19 @@ class Tourney:
                             (self.players[self.next2act].nick,
                              self.curbet - self.players[self.next2act].action))
 
+                sendstatus = False
+
+
+
+        nlive = self.nlive()
 
         # All but one player has quit.  He wins.
-        if self.nlive() - self.nquitters() == 1:
+        if nlive - self.nquitters() == 1:
             self.endhand(False)
+
+        # Goofy hack for when the tourney is set up stupidly
+        elif nlive == self.nallin():
+            self.nextround()
 
         else:
 
@@ -1423,7 +1435,7 @@ class Tourney:
                                  p.hand.showhole())
 
 
-            self.run()
+            self.run(True)
             #####log.logger.debug('Tourney.newhand:%s is next to act. (%d to call)' %\
             #####                 (self.players[self.next2act].nick,
             #####                  self.curbet - self.players[self.next2act].action))
@@ -1612,7 +1624,7 @@ class Tourney:
         self.next2act = self.lastbettor
 
 
-        self.run()
+        self.run(True)
         #####log.logger.debug('Tourney.nextround:%s is next to act. (%d to call)' %\
         #####                 (self.players[self.next2act].nick,
         #####                  self.curbet - self.players[self.next2act].action))
