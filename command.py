@@ -29,8 +29,8 @@ class Command:
         self.handsflag = False
 
         noarg = ['ABORT', 'BACK', 'BOARD', 'CARDS', 'CHECK',
-                 'COMMANDS', 'FOLD', 'HELP', 'QUIT', 'START',
-                 'STATUS', 'UNDO']
+                 'COMMANDS', 'FOLD', 'HELP', 'POSITION', 'QUIT',
+                 'START', 'STATUS', 'UNDO']
 
         chararg = ['JOIN', 'PASSWORD', 'REMIND', 'VACATION']
         intarg = ['BANKROLL', 'BET', 'BLIND', 'CALL', 'DOUBLE', 'MAKE',
