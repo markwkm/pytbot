@@ -32,18 +32,18 @@ class TBot(irc.IRCClient):
     def pubout(self, msg):
         log.logger.debug('TBot.pubout()')
         
-        print '[PUB->%s]' % msg
+        log.chatlog.critical('[PUB->]%s' % (msg,))
         self.say(self.channel, msg)
 
     def privout(self, user, msg):
         log.logger.debug('TBot.privout()')
         
-        print '[PRV->%s]' % msg
+        log.chatlog.critical('[PRV->]%s' % (msg,))
         self.msg(user, msg)
         #self.cprivmsg(self.channel, user, msg)
 
     def noteout(self, user, msg):
-        print '[NOTE->%s]' % msg
+        log.chatlog.critical('[NTE->]%s' % (msg,))
         self.notice(user, msg)
         #self.cnotice(self.channel, user, msg)
 
@@ -83,7 +83,7 @@ class TBot(irc.IRCClient):
         """This will get called when the bot receives a NOTICE."""
         
         user = user.split('!', 1)[0]
-        print "[NOTICE<-]<%s> %s" % (user, msg)
+        log.chatlog.critical('[NTE<-]<%s> %s' % (user, msg))
 
     def privmsg(self, user, channel, msg):
         """This will get called when the bot receives a message."""
@@ -96,9 +96,9 @@ class TBot(irc.IRCClient):
 
         # Private message to me
         if channel == self.nickname:
-            print "[PRV<-]<%s> %s" % (user, msg)
+            log.chatlog.critical('[PRV<-]<%s> %s' % (user, msg))
         else:
-            print "[PUB<-]<%s> %s" % (user, msg)
+            log.chatlog.critical('[PUB<-]<%s> %s' % (user, msg))
 
         match = rcmd.match(msg)
 
@@ -134,16 +134,27 @@ class TBot(irc.IRCClient):
         """This will get called when the bot sees someone do an action."""
         
         user = user.split('!', 1)[0]
-        print "* %s %s" % (user, msg)
+        log.chatlog.critical('* %s %s' % (user, msg))
 
-    # irc callbacks
+    def userJoined(self, user, channel):
+        """Called when I see another user joining a channel.
+        """
 
-    def irc_NICK(self, prefix, params):
-        """Called when an IRC user changes their nickname."""
-        
-        old_nick = prefix.split('!')[0]
-        new_nick = params[0]
-        print "%s is now known as %s" % (old_nick, new_nick)
+        user = user.split('!', 1)[0]
+        log.chatlog.info('%s joined %s' % (user, channel))
+
+    def userLeft(self, user, channel):
+        """Called when I see another user leaving a channel.
+        """
+
+        user = user.split('!', 1)[0]
+        log.chatlog.info('%s has left %s' % (user, channel))
+
+    def userRenamed(self, oldname, newname):
+        """A user changed their name from oldname to newname.
+        """
+
+        log.chatlog.info('%s is now known as %s' % (oldname, newname))
 
     def cprivmsg(self, chan, user, message):
 
@@ -174,7 +185,7 @@ class TBotFactory(protocol.ClientFactory):
         connector.connect()
 
     def clientConnectionFailed(self, connector, reason):
-        print "connection failed:", reason
+        log.logger.critical('connection failed: %s', (reason,))
         reactor.stop()
 
 if __name__ == '__main__':

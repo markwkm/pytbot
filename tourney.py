@@ -87,8 +87,6 @@ class Tourney:
         except IOError, (errno, strerror):
             log.logger.critical("Problem loading password file %s:%s" %\
                   (self.passwdfile, strerror))
-            print "Problem loading password file %s:%s" %\
-                  (self.passwdfile, strerror)
             sys.exit(1)
         
         nplayers = 0
@@ -129,7 +127,6 @@ class Tourney:
             nfile.close()
         except IOError, (errno, strerror):
             log.logger.critical("Tourney.replacepasswd:Problem replacing password")
-            print 'Problem replacing password'
             success = False
 
         if success:
@@ -143,7 +140,6 @@ class Tourney:
         player name is actually new.'''
 
         log.logger.debug('Tourney.save1passwd()')
-        print 'Tourney.save1passwd:Adding new player %s' % name
         log.logger.info('Tourney.save1passwd:Adding new player %s' % name)
         
         success = True
@@ -155,7 +151,6 @@ class Tourney:
             pfile.close()
         except IOError, (errno, strerror):
             log.logger.critical("Tourney.save1passwd:Problem saving password")
-            print 'Problem saving password'
             success = False
         
         return success
@@ -902,9 +897,9 @@ class Tourney:
         dealvac = ''
         status = ''
 
-        self.noteout(pid, '+-+-----------------------+--------+--------+------+----+--------+')
-        self.noteout(pid, '|#|   Name                |Bankroll| Action |Status|Pot#|Pot Size|')
-        self.noteout(pid, '+-+-----------------------+--------+--------+------+----+--------+')
+        self.noteout(pid, '+-+------------+--------+--------+------+----+--------+')
+        self.noteout(pid, '|#|   Name     |Bankroll| Action |Status|Pot#|Pot Size|')
+        self.noteout(pid, '+-+------------+--------+--------+------+----+--------+')
         for p in self.players:
             if p.busted:
                 continue
@@ -927,7 +922,7 @@ class Tourney:
                     dealvac = 'D  '
             elif self.next2act == self.players.index(p):
                 dealvac = '>  '
-            msg = '%2d|%3s%-20s|%8d|%8d|%6s' % (self.players.index(p) + 1, dealvac, p.nick, int(p.bankroll), int(p.inplay), status)
+            msg = '%2d|%3s%-9s|%8d|%8d|%6s' % (self.players.index(p) + 1, dealvac, p.nick, int(p.bankroll), int(p.inplay), status)
 
             if hasattr(self, 'sidepots'):
                 if p.folded:
@@ -947,7 +942,7 @@ class Tourney:
             self.noteout(pid, msg)
             dealvac = ''
             status = ''
-        self.noteout(pid, '+-+-----------------------+--------+--------+------+----+--------+')
+        self.noteout(pid, '+-+------------+--------+--------+------+----+--------+')
 
     def printboard(self, nround):
         buf = ''
@@ -1016,7 +1011,7 @@ class Tourney:
                     #p.busted = True
                     p.quit = True
             if p.quit:
-                self.pubout('%s has quit' % p.nick)
+                self.pubout('%s has quit.' % p.nick)
                 quitters.append(p)
 
         if len(quitters) > 0:
@@ -1458,7 +1453,7 @@ class Tourney:
             self.players[self.sb].action = sbbr
             self.players[self.sb].allin = True
             self.pot += sbbr
-            self.pubout('%s blinds $%d and is all-in.  Pot is now $%d.' %\
+            self.pubout('%s blinds $%d and is all in.  Pot is now $%d.' %\
                         (self.players[self.sb].nick, sbbr, self.pot))
             log.logger.info('%s blinds $%d and is all-in' %\
                             (self.players[self.sb].nick, sbbr))
@@ -1481,7 +1476,7 @@ class Tourney:
             self.players[self.bb].action = bbbr
             self.players[self.bb].allin = True
             self.pot += bbbr
-            self.pubout('%s blinds $%d and is all-in.  Pot is now $%d.' %\
+            self.pubout('%s blinds $%d and is all in.  Pot is now $%d.' %\
                         (self.players[self.bb].nick, bbbr, self.pot))
             log.logger.info('%s blinds $%d and is all-in' %\
                             (self.players[self.bb].nick, bbbr))
