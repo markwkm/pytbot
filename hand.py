@@ -83,7 +83,7 @@ class Hand:
         for c in self.cards:
             buf += '%s ' % c.face()
         buf = buf[:-1]
-        buf += ']:Type=%d' % self.type
+        buf += ']:Type=%d(%s)' % (self.type, Hand.TYPE_STR[self.type])
         return buf
     def addcard(self, acard):
         log.logger.debug('Hand.addcard()')
@@ -142,6 +142,7 @@ class Hand:
             else:
                 result = cmp(self.kickers[x].rank(),
                              other.kickers[x].rank())
+                break
         return result
             
     def muck(self):
@@ -599,6 +600,13 @@ class Hand:
         print "processed %d hands in %d seconds" % (sum, td)
 
 if __name__ == '__main__':
+
+    #######  2  3  4  5  6  7  8  9  T  J  Q  K  A
+
+    #CLUBS#  0  1  2  3  4  5  6  7  8  9 10 11 12
+    #DIAMD# 13 14 15 16 17 18 19 20 21 22 23 24 25
+    #HEART# 26 27 28 29 30 31 32 33 34 35 36 37 38
+    #SPADE# 39 40 41 42 43 44 45 46 47 48 49 50 51
 
     handhist=[0,0,0,0,0,0,0,0,0]
     foo = Hand()
