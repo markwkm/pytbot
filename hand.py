@@ -87,11 +87,6 @@ class Hand:
 
         self.cards.append(acard)
 
-    def addkicker(self, acard):
-        log.logger.debug('Hand.addkicker()')
-
-        self.kickers.append(acard)
-
     def card(self, card):
         log.logger.debug('Hand.card()')
 
@@ -156,16 +151,16 @@ class Hand:
         if self.type == Hand.TYPE_FL:
             for c in self.cards:
                 if c.suit() == self.flushcard.suit():
-                    self.addkicker(c)
+                    self.kickers.append(c)
         elif self.type == Hand.TYPE_1P or self.type == Hand.TYPE_3K or\
                  self.type == Hand.TYPE_4K or self.type == Hand.TYPE_NP:
             for c in self.cards:
                 if c.rank() != self.hi:
-                    self.addkicker(c)
+                    self.kickers.append(c)
         elif self.type == Hand.TYPE_2P:
             for c in self.cards:
                 if c.rank() != self.hi and c.rank() != self.lo:
-                    self.addkicker(c)
+                    self.kickers.append(c)
         self.kickers.sort()
         self.kickers.reverse()
 
