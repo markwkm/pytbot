@@ -32,21 +32,44 @@ class TBot(irc.IRCClient):
     def pubout(self, msg):
         #log.logger.debug('TBot.pubout()')
         
-        log.chatlog.info('[PUB->]%s' % (msg,))
         self.say(self.channel, msg)
+
+        # strip color codes
+        msg = msg.replace("01,00", '')
+        msg = msg.replace("02,00", '')
+        msg = msg.replace("03,00", '')
+        msg = msg.replace("04,00", '')
+        msg = msg.replace("", '')
+
+        log.chatlog.info('[PUB->]%s' % (msg,))
 
     def privout(self, user, msg):
         #log.logger.debug('TBot.privout()')
         
-        log.chatlog.info('[PRV->%s]%s' % (user, msg))
         self.msg(user, msg)
         #self.cprivmsg(self.channel, user, msg)
+        
+        # strip color codes
+        msg = msg.replace("01,00", '')
+        msg = msg.replace("02,00", '')
+        msg = msg.replace("03,00", '')
+        msg = msg.replace("04,00", '')
+        msg = msg.replace("", '')
+
+        log.chatlog.info('[PRV->%s]%s' % (user, msg))
 
     def noteout(self, user, msg):
-        log.chatlog.info('[NTE->%s]%s' % (user, msg))
-
         self.notice(user, msg)
         #self.cnotice(self.channel, user, msg)
+
+        # strip color codes
+        msg = msg.replace("01,00", '')
+        msg = msg.replace("02,00", '')
+        msg = msg.replace("03,00", '')
+        msg = msg.replace("04,00", '')
+        msg = msg.replace("", '')
+
+        log.chatlog.info('[NTE->%s]%s' % (user, msg))
 
     def __init__(self):
         conf = ConfigParser.SafeConfigParser()
