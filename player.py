@@ -51,10 +51,13 @@ class Player:
         self.busted = False
         self.quit = False
         self.allin = False
+        self.won = 0
         self.lastbet = 0
         self.action = 0
         self.inplay = 0
         self.vacation = 0
+        self.activity = ['','','','']
+        self.position = 0
         self.cmd = Command()
         self.hand = Hand()
 

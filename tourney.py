@@ -33,11 +33,10 @@ class Tourney:
     nholecards = 2
     nboardcards = 5
 
-    def __init__(self, tnum = 0, pubout=None, privout=None, noteout = None,
+    def __init__(self, pubout=None, privout=None, noteout = None,
                  dbname='BADNAME', dbuser='BADUSER', dbpw='BADPASS'):
         log.logger.debug('Tourney.__init__()')
 
-        self.tnum = tnum
         self.pubout = pubout
         self.privout = privout
         self.noteout = noteout
@@ -47,6 +46,7 @@ class Tourney:
         self.maxplayers = 23
         self.nstartplayers = 0
         self.players = []
+        self.finishers = []
         self.waiters = []
         self.playing = False
         self.aborted = False
@@ -81,6 +81,9 @@ class Tourney:
         self.dt = datetime(2000, 1, 1)
         self.timestamp = self.dt.now()
         self.dbstamp = 0
+        self.tourneytstamp = 0	
+        self.nplyin = [0, 0, 0, 0]
+        self.potsize = [0, 0, 0, 0]
 
         # Make sure we can talk to the database
         try:
@@ -233,8 +236,10 @@ class Tourney:
             if not self.playing:
                 self.privout(pid, 'There is currently no game.')
             else:
+        #        self.noteout(pid, 'players:%2d position:%2d' % (self.nlive(),
+        #                                                        self.position(p)))
                 self.noteout(pid, 'players:%2d position:%2d' % (self.nlive(),
-                                                                self.position(p)))
+                                                                p.position))
         elif c == 'STACK':
             if not self.playing:
                 self.privout(pid, 'There is currently no game.')
@@ -324,6 +329,7 @@ class Tourney:
                 self.privout(pid, "You've already quit!")                
             else:
                 self.privout(pid, "Okay, you're gone!")
+                p.activity[self.round] += 'Q'
                 p.cmd.cmd = 'FOLD'
                 p.cmd.arg = ''
                 p.quit = True
@@ -426,6 +432,7 @@ class Tourney:
             if p.cmd.cmd == 'FOLD':
 
                 if p.action >= self.curbet:
+                    p.activity[self.round] += 'k'
                     if p.vacation:
                         log.logger.info('Tourney.run:%s is on vacation and checks' % p.nick)
                     else:
@@ -438,6 +445,8 @@ class Tourney:
                     p.folded = True
                     p.cmd.cmd = 'NOOP'
                     nactive = self.nactive()
+                    if not 'Q' in p.activity[self.round]:
+                        p.activity[self.round] += 'f'
                     msg = '%s folds.  We now have %d player' %\
                           (p.nick, nactive)
                     if nactive > 1:
@@ -556,6 +565,7 @@ class Tourney:
                 p.cmd.cmd = 'NOOP'
 
                 if tocall == 0:
+                    p.activity[self.round] += 'k'
                     self.pubout('%s checks.' % p.nick)
                     log.logger.info('Tourney.run:%s checks' % p.nick)
                 else:
@@ -681,6 +691,7 @@ class Tourney:
 
             # All-in call
             else:
+                p.activity[self.round] += 'A'
                 self.pot += p.bankroll
                 p.action += p.bankroll
                 p.inplay += p.bankroll
@@ -700,6 +711,7 @@ class Tourney:
             # Normal call
             p.lastbet = self.curbet
             if tocall < p.bankroll:
+                p.activity[self.round] += 'c'
                 self.pot += tocall
                 p.action += tocall
                 p.inplay += tocall
@@ -711,6 +723,7 @@ class Tourney:
 
             # All-in call
             elif tocall >= p.bankroll:
+                p.activity[self.round] += 'A'
                 self.pot += p.bankroll
                 p.action += p.bankroll
                 p.inplay += p.bankroll
@@ -745,6 +758,7 @@ class Tourney:
 
         # All-in call
         if p.bankroll < tocall:
+            p.activity[self.round] += 'A'
             self.pot += p.bankroll
             p.action += p.bankroll
             p.inplay += p.bankroll
@@ -759,6 +773,7 @@ class Tourney:
             p.bankroll = 0
 
         else:
+            p.activity[self.round] += 'c'
             p.lastbet = self.curbet
             self.pot += tocall
             p.action += tocall
@@ -833,7 +848,7 @@ class Tourney:
                     self.curbet = p.action
 
                     self.minraise += p.bankroll - tocall
-
+                    p.activity[self.round] += 'A'
                     self.pubout('%s raises $%d and is all in.  Pot is now $%d.' % (p.nick, maxraise, self.pot))
                     log.logger.info('Tourney.RAISE: %s raises $%d and is all in' % (p.nick, maxraise))
 
@@ -880,11 +895,11 @@ class Tourney:
                     p.inplay += p.bankroll
                     p.lastbet = p.action
                     if self.curbet == 0:
-                        
+                        p.activity[self.round] += 'b'
                         self.pubout('%s bets $%d and is all in.  Pot is now $%d.' % (p.nick, p.bankroll, self.pot))
                         log.logger.info('Tourney.RAISE: %s bet $%d and is all in' % (p.nick, p.bankroll))
                     else:
-
+                        p.activity[self.round] += 'A'
                         self.pubout('%s raises $%d and is all in.  Pot is now $%d.' % (p.nick, p.bankroll - tocall, self.pot))
                         log.logger.info('Tourney.RAISE: %s raises $%d and is all in' % (p.nick, p.bankroll - tocall))
 
@@ -903,11 +918,13 @@ class Tourney:
                     p.lastbet = self.curbet + araise
                     p.bankroll -= chips
                     if self.curbet > 0:
+                        p.activity[self.round] += 'r'
                         self.pubout('%s raises $%d.  Pot is now $%d.' %\
                                     (p.nick, araise, self.pot))
                         log.logger.info('Tourney.RAISE:%s raises $%d' %\
                                         (p.nick, araise))
                     else:
+                        p.activity[self.round] += 'b'
                         log.logger.debug('Tourney.RAISE:chips = $%d' % chips)
                         self.pubout('%s bets $%d.  Pot is now $%d.' %\
                                     (p.nick, araise, self.pot))
@@ -1049,7 +1066,7 @@ class Tourney:
 
         if showdown:
             self.makepots()
-            self.showdown()
+            showhole = self.showdown()
 
         quitters = []
         for p in self.players:
@@ -1080,7 +1097,59 @@ class Tourney:
                 place -= 1
                 q.busted = True
                 q.quit = False
+                self.finishers.append(q.nick)
                 #self.players.remove(q)
+
+        #record Hand
+        try:
+            db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
+        except Exception, msg:
+            log.logger.error("Can't talk to database - exiting\n", msg)
+            self.pubout("Can't talk to the user database - panicing!")
+            sys.exit(1)
+
+        c = db.cursor()
+
+        query = ("INSERT INTO hands (timestamp, channel, tourney,\
+        game, plflop, potflop, plturn, potturn, plriver, potriver,\
+        plshow, potshow, board) VALUES (%d, 'tourney', %d, %d, %d, %d,\
+        %d, %d, %d, %d, %d, %d, '%s')") % (self.dbstamp, self.tourneytstamp,
+        self.handnum, self.nplyin[0], self.potsize[0], self.nplyin[1],
+        self.potsize[1], self.nplyin[2], self.potsize[2],
+        self.nplyin[3], self.potsize[3], self.printboard(self.round))
+
+        c.execute(query)
+            
+        db.commit()
+
+        #record player action
+        for p in self.players:
+            if p.activity[0]:
+                activity = [None,None,None,None]
+                a = 0
+                for s in p.activity:
+                    if s:
+                        activity[a] = s
+                    else:
+                        activity[a] = ''
+                    a += 1
+                if showhole:
+                    hole = p.hand.showhole()
+                else:
+                    hole = ''
+                query = "INSERT INTO action VALUES (%d, '%s', 'tourney', %d, '%s', '%s', '%s', '%s', %d, %d, %d, '%s')" %\
+                        (self.dbstamp, p.nick, p.position, activity[0], activity[1],
+                         activity[2], activity[3], p.oldbankroll, p.inplay, p.won,
+                         hole)
+
+                log.logger.debug('query:%s' % (query,))
+
+                c.execute(query)
+                db.commit()
+            
+                
+        c.close()
+        db.close()
 
         if self.tourneyover():
             self.endtourney()
@@ -1092,14 +1161,20 @@ class Tourney:
 
         active = self.activeplayers()
 
+        self.potsize[3] = self.pot
+        self.nplyin[3] = len(active)
+
         if len(active) == 1:
 
+            showhole = False;
             active[0].bankroll += self.pot
+            active[0].won += self.pot
             log.logger.info('%s wins $%d' % (active[0].nick, self.pot))
 
             self.pubout('%s wins $%d.' % (active[0].nick, self.pot))
         else:
-
+            showhole = True;
+            
             # Compare hands and award pots
             log.logger.info('Hand over, current board is: %s' %\
                             self.printboard(self.round))
@@ -1134,9 +1209,8 @@ class Tourney:
                         myshare = share + 1
 
                     w.bankroll += myshare
-
+                    w.won += myshare
                     if len(self.pots) == 1:
-
                         log.logger.info('%s wins $%d with %s %s' %\
                                         (w.nick, myshare,
                                          Hand.TYPE_STR[w.hand.type],
@@ -1148,7 +1222,7 @@ class Tourney:
                     else:
 
                         # print 'return uncalled foo' for a pot with a
-                        # single payer
+                        # single player
                         if len(pot.players) == 1:
                             log.logger.info('Pot %d: uncalled $%d returned to %s' % (len(pot.players), pot.value, w.nick))
                             self.pubout('%s wins $%d' % (w.nick, pot.value))
@@ -1158,8 +1232,7 @@ class Tourney:
                                         (w.nick, myshare,
                                          Hand.TYPE_STR[w.hand.type],
                                          w.hand.rankorderstr()))
-
-        #return active
+        return showhole
 
     def showhands(self):
         log.logger.debug('Tourney.showhands()')
@@ -1221,16 +1294,49 @@ class Tourney:
                 log.logger.critical('Tourney.endtourney called with > 1 active player!')
 
             else:
+                self.finishers.append(plist[0].nick)
                 self.pubout('The tourney is over.  %s wins!  Congratulations!' % plist[0].nick)
                 log.logger.info('Tourney.endtourney: Tourney over, %s wins' % plist[0].nick)
+
+            # Replace tourney DB entry with players in order of finish
+            try:
+                db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
+            except Exception, msg:
+                log.logger.error("Can't talk to database - exiting\n", msg)
+                self.pubout("Can't talk to the user database - panicing!")
+                sys.exit(1)
+
+            c = db.cursor()
+
+            c.execute("SELECT MAX(timestamp) from tournies where channel='tourney'")
+
+            maxstamp = c.fetchone()[0]
+            if maxstamp:
+                self.finishers.reverse()
+                sets = ""
+                playerconv = ""
+                for n in xrange(len(self.finishers)):
+                    sets += "player%d='%s'," % (n+1, self.finishers[n])
+
+                sets = sets.rstrip(',')
+
+                query = "UPDATE tournies SET %s WHERE timestamp=%d" %\
+                        (sets,maxstamp)
+
+                log.logger.debug('query:%s' % (query,))
+
+                c.execute(query)
+
+                db.commit()
+	    c.close()
+	    db.close()
 
         else:
             log.logger.info('Tourney.endtourney: Tourney aborted!')
 
-        #for p in self.players:
-        #    if p.busted or p.quit:
-        #        self.players.remove(p)
+
         self.players = []
+        self.finishers = []
 
         self.playing = False
 
@@ -1308,7 +1414,7 @@ class Tourney:
             self.pubout("Everyone's on vacation.   Aborting tourney")
             self.endtourney(True)
         elif self.aborted:
-            self.endtourney(True)
+             self.endtourney(True)
         else:
             self.handnum += 1
 
@@ -1363,9 +1469,12 @@ class Tourney:
                 player.allin = 0
                 player.inplay = 0
                 player.action = 0
+                player.won = 0
+                player.oldbankroll = player.bankroll
                 player.lastbet = 0
                 player.folded = False
                 player.allin = False
+                player.activity = ['','','','']
                 player.hand.muck()
                 if player.vacation:
                     player.cmd.cmd = 'FOLD'
@@ -1447,10 +1556,51 @@ class Tourney:
                 self.deck.shuffle(0)
             self.deal()
 
+            playernum = 1
+	    playernums = ""
+	    playerconv = ""
+            nicklist = ""
             for p in self.players:
                 if not p.busted:
                     self.noteout(p.nick, 'Your hole cards are: %s' %\
                                  p.hand.showhole())
+
+                    # build strings for SQL query
+                    playernums += "player%d," % (playernum,)
+                    playernum += 1
+                    playerconv += "%s,"
+                    nicklist += "'%s'," % (p.nick,)
+                    
+            playernums = playernums.rstrip(',')
+            playerconv = playerconv.rstrip(',')
+            nicklist = nicklist.rstrip(',')
+
+            query = "INSERT INTO roster (timestamp, numplayers, %s) VALUES (%%d, %%d, %s)" % (playernums, playerconv)
+
+	    log.logger.debug('query:%s' % (query,))
+
+            data = (self.dbstamp, self.nlive()) + tuple(nicklist.split(','))
+                    
+	    log.logger.debug('data:%s' % (data,))
+
+            #record roster
+            try:
+                db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
+            except Exception, msg:
+                log.logger.error("Can't talk to database - exiting\n", msg)
+                self.pubout("Can't talk to the user database - panicing!")
+                sys.exit(1)
+
+            c = db.cursor()
+
+            c.execute(query % data)
+            
+            db.commit()
+            c.close()
+            db.close()
+
+            self.nplyin = [0, 0, 0, 0]
+            self.potsize = [0, 0, 0, 0]
 
             self.run(True)
             #####log.logger.debug('Tourney.newhand:%s is next to act. (%d to call)' %\
@@ -1547,6 +1697,9 @@ class Tourney:
         if self.players[self.bb].action > self.maxaction:
             self.maxaction = self.players[self.bb].action
         self.minraise = self.hiblind
+
+        self.players[self.sb].activity[0] = 'B'
+        self.players[self.bb].activity[0] = 'B'
 
     def nonvacation(self):
         'Count how many players are on vacation'
@@ -1645,13 +1798,6 @@ class Tourney:
 
 
         self.run(True)
-        #####log.logger.debug('Tourney.nextround:%s is next to act. (%d to call)' %\
-        #####                 (self.players[self.next2act].nick,
-        #####                  self.curbet - self.players[self.next2act].action))
-        #####
-        #####self.pubout('%s is next to act. (%d to call)' %\
-        #####            (self.players[self.next2act].nick,
-        #####            self.curbet - self.players[self.next2act].action))
 
     def flipcards(self):
         log.logger.debug('Tourney.flipcards()')
@@ -1661,12 +1807,18 @@ class Tourney:
             buf += 'Flop : '
             for i in xrange(3):
                 buf += self.board[i].face() + ' '
+            self.potsize[Tourney.FLOP-1] = self.pot
+            self.nplyin[Tourney.FLOP-1] = self.nlive()
         elif self.round == Tourney.FLOP:
             buf += 'Turn : '
             buf += self.board[3].face() + ' '    
+            self.potsize[Tourney.TURN-1] = self.pot
+            self.nplyin[Tourney.TURN-1] = self.nlive()
         elif self.round == Tourney.TURN:
             buf += 'River: '
             buf += self.board[4].face() + ' '    
+            self.potsize[Tourney.RIVER-1] = self.pot
+            self.nplyin[Tourney.RIVER-1] = self.nlive()
         self.round += 1
 
         self.pubout('Board:      %s' % self.printboard(self.round))
@@ -1687,10 +1839,24 @@ class Tourney:
             log.logger.debug('Tourney.begin:%s' % p.nick)
 
         shuffle(self.players)
-
+        
+        playernums = ""
+        playerconv = ""
+        nicklist = ""
+        playernum = 1
         for p in self.players:
             log.logger.debug('Tourney.begin:%s' % p.nick)
             p.bankroll = self.bankroll
+
+            # build strings for SQL query
+            playernums += "player%d," % (playernum,)
+            playernum += 1
+            playerconv += "%s,"
+            nicklist += "'%s'," % (p.nick,)
+                    
+        playernums = playernums.rstrip(',')
+        playerconv = playerconv.rstrip(',')
+        nicklist = nicklist.rstrip(',')
         
         self.nstartplayers = len(self.players)
         self.button = len(self.players) - 1
@@ -1699,6 +1865,32 @@ class Tourney:
 
         self.handnum = 0
         self.timestamp = self.dt.now()
+
+        # Grab last tourney number from database
+        try:
+            db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
+        except Exception, msg:
+            log.logger.error("Can't talk to database - exiting\n", msg)
+            self.pubout("Can't talk to the user database - panicing!")
+            sys.exit(1)
+
+        c = db.cursor()
+
+        # Record new tourney
+        query = "INSERT INTO tournies (timestamp, channel, numplayers, %s) VALUES (%%d, %%s, %%d, %s)" % (playernums, playerconv)
+
+	log.logger.debug('query:%s' % (query,))
+	self.tourneytstamp = int(time.time())
+        data = (self.tourneytstamp, "'tourney'", len(self.players)) + tuple(nicklist.split(','))
+
+	log.logger.debug('data:%s' % (data,))
+
+        c.execute(query % data)
+
+        db.commit()
+        c.close()
+        db.close()
+
         self.newhand()
 
     def makepots(self):
@@ -1766,6 +1958,7 @@ class Tourney:
         log.logger.debug('Tourney.deal()')
 
         faces = []
+        position = 1
         for n in xrange(Tourney.nholecards):
             for p in xrange(len(self.players)):
                 player = self.players[(self.button +1+p) % len(self.players)]
@@ -1774,6 +1967,9 @@ class Tourney:
                     player.hand.addcard(acard)
                     player.hand.seat = self.players.index(player)
                     faces.append(acard.face())
+                    if n == 0:
+                        player.position = position
+                        position += 1
         for n in xrange(Tourney.nboardcards):
             acard = self.deck.nextcard()
             self.board.append(acard)
@@ -1786,9 +1982,13 @@ class Tourney:
         for n in xrange(52 - ndealt):
             faces.append(self.deck.nextcard().face())
 
+        oldstamp = self.dbstamp
         self.dbstamp = int(time.time())
-        #record hand
+        if self.dbstamp == oldstamp:
+            time.sleep(1)
+            self.dbstamp = int(time.time())
         
+        #record deck
         try:
             db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
         except Exception, msg:
