@@ -62,6 +62,7 @@ class Tourney:
         self.bbacted = False
         self.curbet = 0
         self.minraise = 0
+        self.maxaction = 0
         self.pot = 0
         self.pots = []
         self.lastbettor = 0
@@ -499,7 +500,10 @@ class Tourney:
                     self.bbacted = True
                 if not advseat:
                     sendstatus = False
-                    break
+                    if p.cmd.cmd == 'NOOP':
+                        break
+                    else:
+                        continue
 
             elif p.cmd.cmd == 'JAM':
                 if p.bankroll < tocall:
@@ -611,6 +615,11 @@ class Tourney:
                     allin = False
 
 
+            #####****** If all but one is all in and non-allin player has
+            #####****** the most (or is tied for the most) money in the pot
+            #####****** then flipout and award pots.
+
+
             if sendstatus and not p.vacation:
                 log.logger.debug('Tourney.run:%s is next to act. (%d to call)' %(self.players[self.next2act].nick, self.curbet - self.players[self.next2act].action))
             
@@ -620,16 +629,14 @@ class Tourney:
 
                 sendstatus = False
 
-
-
         nlive = self.nlive()
 
         # All but one player has quit.  He wins.
         if nlive - self.nquitters() == 1:
             self.endhand(False)
 
-        # End round when all but one player is all in
-        elif self.nallin() >= nlive - 1:
+        # Goofy hack for when the tourney is set up stupidly
+        elif nlive == self.nallin() or p.allin:
             self.nextround()
 
         else:
@@ -1433,7 +1440,6 @@ class Tourney:
                     self.noteout(p.nick, 'Your hole cards are: %s' %\
                                  p.hand.showhole())
 
-
             self.run(True)
             #####log.logger.debug('Tourney.newhand:%s is next to act. (%d to call)' %\
             #####                 (self.players[self.next2act].nick,
@@ -1502,6 +1508,7 @@ class Tourney:
                             (self.players[self.sb].nick,
                              self.loblind))
 
+        self.maxaction = self.players[self.sb].action
         bbbr = self.players[self.bb].bankroll
         if bbbr <= self.hiblind:
             self.players[self.bb].bankroll = 0
@@ -1525,6 +1532,8 @@ class Tourney:
                             (self.players[self.bb].nick,
                              self.hiblind))
 
+        if self.players[self.bb].action > self.maxaction:
+            self.maxaction = self.players[self.bb].action
         self.minraise = self.hiblind
 
     def nonvacation(self):
@@ -1593,7 +1602,7 @@ class Tourney:
 
         # Flip the rest of the board and end the hand
         # if everyone (or nearly everyone) is all in
-        if self.nactive() - self.nallin() <= 1:
+        if nactive - nallin <= 1:
             self.flipout()
             self.endhand()
             if not self.playing:
