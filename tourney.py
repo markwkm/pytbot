@@ -275,7 +275,7 @@ class Tourney:
             if not self.playing:
                 self.privout(pid, 'There is currently no board to display.')
             else:
-                self.noteout(pid, 'Board: %s' % self.printboard(self.round))
+                self.noteout(pid, 'Board:      %s' % self.printboard(self.round))
                 
         elif c == 'BLIND':
             self.loblind = cmd.arg
@@ -307,7 +307,7 @@ class Tourney:
                 self.noteout(pid, 'I need at least two players to start a tournament.')
             else:
                 self.playing = True
-                self.pubout('A new tournament is about to begin.  Good luck!')
+                self.pubout('A new tourney is about to begin.  Good luck!')
                 self.begin()
 
         elif c == 'ABORT':
@@ -429,7 +429,7 @@ class Tourney:
                         log.logger.info('Tourney.run:%s is on vacation and checks' % p.nick)
                     else:
                         log.logger.info('Tourney.run:%s checks' % p.nick)
-                    self.pubout('%s checks' % p.nick)
+                    self.pubout('%s checks.' % p.nick)
                     p.cmd.cmd = 'FOLD'
                 else:
                     p.folded = True
@@ -533,7 +533,7 @@ class Tourney:
                 p.cmd.cmd = 'NOOP'
 
                 if tocall == 0:
-                    self.pubout('%s checks' % p.nick)
+                    self.pubout('%s checks.' % p.nick)
                     log.logger.info('Tourney.run:%s checks' % p.nick)
                 else:
                     log.logger.info('Tourney.run:%s check when $%d to call' %\
@@ -894,7 +894,7 @@ class Tourney:
             if p.busted:
                 continue
             elif p.folded:
-                status = 'folded'
+                status = 'FOLDED'
             elif p.quit:
                 status = '<QUIT>'
             elif p.allin:
@@ -1042,7 +1042,7 @@ class Tourney:
             # Compare hands and award pots
             log.logger.info('Hand over, current board is: %s' %\
                             self.printboard(self.round))
-            self.pubout('Board: %s' % self.printboard(self.round))
+            self.pubout('Board:      %s' % self.printboard(self.round))
             self.pubout("Players' hands:")
             self.showhands()
 
@@ -1277,7 +1277,7 @@ class Tourney:
                     blindmsg = 'Blinds will double in %d seconds.' % (self.blindinterval - timexp)
 
             self.pubout(' ')
-            self.pubout('The blinds are currently $%d and $%d' %\
+            self.pubout('The blinds are currently $%d and $%d.' %\
                         (self.loblind, self.hiblind))
 
             self.pubout(blindmsg)
@@ -1401,13 +1401,13 @@ class Tourney:
             nout += 1
             if p.vacation:
                 if self.button == self.players.index(p):
-                    dealvac = 'BV'
+                    dealvac = 'VB'
                 else:
                     dealvac = 'V '
             elif self.button == self.players.index(p):
                 dealvac = 'B-'
 
-            msg += '%2s%-9s%7d' % (dealvac, p.nick, p.bankroll)
+            msg += '%2s%-9s%7d   ' % (dealvac, p.nick, p.bankroll)
             if nout == 3:
                 self.pubout(msg)
                 dealvac = '  '
@@ -1415,7 +1415,6 @@ class Tourney:
                 nout = 0
             else:
                 dealvac = '  '
-                msg += '   '
 
         msg = msg.rstrip()
         if msg:
@@ -1595,7 +1594,7 @@ class Tourney:
             buf += self.board[4].face() + ' '    
         self.round += 1
 
-        self.pubout('Board: %s' % self.printboard(self.round))
+        self.pubout('Board:      %s' % self.printboard(self.round))
         log.logger.info('%s' % buf)
 
     def flipout(self):
