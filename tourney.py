@@ -17,6 +17,7 @@
 import log
 import sys
 from datetime import datetime
+import MySQLdb
 
 from command import Command
 from deck import Deck
@@ -31,13 +32,17 @@ class Tourney:
     nholecards = 2
     nboardcards = 5
 
-    def __init__(self, tnum = 0, pubout=None, privout=None, noteout = None):
+    def __init__(self, tnum = 0, pubout=None, privout=None, noteout = None,
+                 dbname='BADNAME', dbuser='BADUSER', dbpw='BADPASS'):
         log.logger.debug('Tourney.__init__()')
 
         self.tnum = tnum
         self.pubout = pubout
         self.privout = privout
         self.noteout = noteout
+        self.dbname = dbname
+        self.dbuser = dbuser
+        self.dbpw = dbpw
         self.maxplayers = 23
         self.nstartplayers = 0
         self.players = []
@@ -75,8 +80,15 @@ class Tourney:
         self.dt = datetime(2000, 1, 1)
         self.timestamp = self.dt.now()
 
+        # Make sure we can talk to the database
+        try:
+            db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
+        except Exception, msg:
+            print "Can't talk to database - exiting\n", msg
+            sys.exit(1)
 
-        self.buildpasswd()
+        db.close()
+            
         
     def buildpasswd(self):
 
@@ -396,19 +408,41 @@ class Tourney:
             self.run()
 
     def joingame(self, nick, pswd):
-    
+        log.logger.debug('Tourney.joingame()')
+
         goodjoin = True
 
-        # Add new players to Tourney.passwd
-        if not nick in self.passwd:
-            self.passwd[nick] = pswd
-            self.save1passwd(nick, pswd)
-                    
+        # Look up nick:pswd in database
+        try:
+            db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
+        except Exception, msg:
+            log.logger.error("Can't talk to database - exiting\n", msg)
+            self.pubout("Can't talk to the user database - panicing!")
+            sys.exit(1)
+
+        c = db.cursor()
+
+        lines = c.execute("SELECT nick,password from player where "
+                          "nick='%s'" % (nick,))
+
+        # Add new players to player database
+        if lines == 0:
+            log.logger.debug("Adding nick %s (%s) to database" % (nick, pswd))
+            c.execute("INSERT into player (nick, password, bankroll) "
+                      "VALUES ('%s', '%s', 1000)" % (nick, pswd))
+
         # Check for valid password
-        elif pswd != self.passwd[nick]:
-            self.privout(nick, "Invalid password.  Please try joining again.")
-            goodjoin = False
-                    
+        else:
+            (anick, apass) = c.fetchone()
+            if lines > 1:
+                log.logger.Warning("Found more than one entry in the player database for %s" % (anick,))
+
+            log.logger.debug("Found nick %s (%s) in database" % (anick, apass))
+            
+            if pswd != apass:
+                self.privout(nick, "Invalid password.  Please try joining again.")
+                goodjoin = False
+
         if goodjoin:
             self.players.append(Player(nick, nick))
             self.noteout(nick, 'Welcome to the game.')
@@ -420,6 +454,9 @@ class Tourney:
                 msg += ' '
             msg += 'in the tournament.'
             self.pubout(msg)
+
+        c.close()
+        db.close()
     
     def run(self, newhand = False):
         log.logger.debug('Tourney.run()')
@@ -824,6 +861,9 @@ class Tourney:
             # Raise too small?
             if araise < self.minraise:
 
+
+                maxraise = p.bankroll - tocall
+                
                 if p.bankroll <= tocall:
 
                     # Not enough chips for the given raise
@@ -834,7 +874,8 @@ class Tourney:
                     advseat = False
 
                 # All-in raise?
-                elif tocall + self.minraise > p.bankroll:
+                elif tocall + self.minraise > p.bankroll and\
+                         araise >= maxraise:
                     if self.nallin() > 0: self.sidepots = True;
                     self.lastbettor = self.players.index(p)
                     self.pot += p.bankroll
@@ -848,8 +889,8 @@ class Tourney:
 
                     self.minraise += p.bankroll - tocall
 
-                    self.pubout('%s raises $%d and is all in.  Pot is now $%d.' % (p.nick, p.bankroll - tocall, self.pot))
-                    log.logger.info('Tourney.RAISE: %s raises $%d and is all in' % (p.nick, p.bankroll - tocall))
+                    self.pubout('%s raises $%d and is all in.  Pot is now $%d.' % (p.nick, maxraise, self.pot))
+                    log.logger.info('Tourney.RAISE: %s raises $%d and is all in' % (p.nick, maxraise))
 
                     p.bankroll = 0
                     p.allin = True
@@ -857,12 +898,13 @@ class Tourney:
                 else:
 
                     # Raise too small
-                    log.logger.info('Tourney.RAISE: %s raised $%d when minraise $%d' % (p.nick, araise, self.minraise))
+                    pmin = min(maxraise, self.minraise)
+                    log.logger.info('Tourney.RAISE: %s raised $%d when minraise $%d' % (p.nick, araise, pmin))
 
                     if tocall == 0:
-                        self.privout(p.nick, 'Insufficient bet.  Minimum bet is $%d' % self.minraise)
+                        self.privout(p.nick, 'Insufficient bet.  Minimum bet is $%d' % pmin)
                     else:
-                        self.privout(p.nick, 'Insufficient raise.  Minimum raise is $%d' % self.minraise)
+                        self.privout(p.nick, 'Insufficient raise.  Minimum raise is $%d' % pmin)
 
                     # Don't advance seat
                     advseat = False
@@ -1166,7 +1208,7 @@ class Tourney:
                             log.logger.info('Pot %d: uncalled $%d returned to %s' % (len(pot.players), pot.value, w.nick))
                             self.pubout('%s wins $%d' % (w.nick, pot.value))
                         else:
-                            log.logger.info('Pot %d: %s wins $%d with %s %s' % (len(pot.players), w.nick, myshare, Hand.TYPE_STR[w.hand.type], w.hand.rankorderstr()))
+                            log.logger.info('Pot %d: %s wins $%d with %s %s' % (self.pots.index(pot), w.nick, myshare, Hand.TYPE_STR[w.hand.type], w.hand.rankorderstr()))
                             self.pubout('%s wins $%d with %s %s.' %\
                                         (w.nick, myshare,
                                          Hand.TYPE_STR[w.hand.type],

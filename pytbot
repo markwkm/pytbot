@@ -18,6 +18,7 @@
 from twisted.protocols import irc
 from twisted.internet import reactor, protocol
 
+import ConfigParser
 import sys
 import time
 
@@ -29,31 +30,44 @@ class TBot(irc.IRCClient):
     ''' An IRC Texas Holdem tournament  dealer'''
 
     def pubout(self, msg):
-        log.logger.debug('TBot.pubout()')
+        #log.logger.debug('TBot.pubout()')
         
-        log.chatlog.critical('[PUB->]%s' % (msg,))
+        log.chatlog.info('[PUB->]%s' % (msg,))
         self.say(self.channel, msg)
 
     def privout(self, user, msg):
-        log.logger.debug('TBot.privout()')
+        #log.logger.debug('TBot.privout()')
         
-        log.chatlog.critical('[PRV->]%s' % (user, msg))
+        log.chatlog.info('[PRV->%s]%s' % (user, msg))
         self.msg(user, msg)
         #self.cprivmsg(self.channel, user, msg)
 
     def noteout(self, user, msg):
-        log.chatlog.critical('[NTE->%s]%s' % (user, msg))
+        log.chatlog.info('[NTE->%s]%s' % (user, msg))
+
         self.notice(user, msg)
         #self.cnotice(self.channel, user, msg)
 
     def __init__(self):
-        self.nickname = 'TBot'
-        self.versionName = 'pyTBot'
-        self.versionNum = '0.1'
+        conf = ConfigParser.SafeConfigParser()
+        
+        try:
+            conf.readfp(open('pytbot.ini'))
+        except IOError, msg:
+            print "Cant open config file: ", msg
+            sys.exit(1)
+            
+        self.nickname = conf.get('IRC', 'nick')
+        self.versionName = conf.get('version', 'name')
+        self.versionNum = conf.get('version', 'number')
         self.versionEnv = sys.platform
-        self.channel = ''
-        self.lineRate = 0.1
-        self.tourney = Tourney(0, self.pubout, self.privout, self.noteout)
+
+        db = conf.get('database', 'db')
+        dbu = conf.get('database', 'user')
+        dbp = conf.get('database', 'passwd')
+
+        self.tourney = Tourney(0, self.pubout, self.privout, self.noteout,
+                               db, dbu, dbp)
 
     #### connection callbacks
     def connectionMade(self):
@@ -63,8 +77,8 @@ class TBot(irc.IRCClient):
 
     def connectionLost(self, reason):
         irc.IRCClient.connectionLost(self, reason)
-        log.logger.info("[disconnected at %s]" %\
-              time.asctime(time.localtime(time.time())))
+        log.logger.info("[disconnected at %s:%s]" %\
+              (time.asctime(time.localtime(time.time())), reason))
 
     #### event callbacks
     def signedOn(self):
@@ -82,22 +96,21 @@ class TBot(irc.IRCClient):
         """This will get called when the bot receives a NOTICE."""
         
         user = user.split('!', 1)[0]
-        log.chatlog.critical('[NTE<-]<%s> %s' % (user, msg))
+        log.chatlog.info('[NTE<-]<%s> %s' % (user, msg))
 
     def privmsg(self, user, channel, msg):
         """This will get called when the bot receives a message."""
-
 
         user = user.split('!', 1)[0]
         ###print "<%s>[%s] %s" % (user, channel, msg)
 
         # Private message to me
         if channel == self.nickname:
-            log.chatlog.critical('[PRV<-]<%s> %s' % (user, msg))
+            log.chatlog.info('[PRV<-]<%s> %s' % (user, msg))
 
         # Public message
         else:
-            log.chatlog.critical('[PUB<-]<%s> %s' % (user, msg))
+            log.chatlog.info('[PUB<-]<%s> %s' % (user, msg))
 
         l = msg.strip().split()
 
@@ -123,7 +136,7 @@ class TBot(irc.IRCClient):
         """This will get called when the bot sees someone do an action."""
         
         user = user.split('!', 1)[0]
-        log.chatlog.critical('* %s %s' % (user, msg))
+        log.chatlog.info('* %s %s' % (user, msg))
 
     def userJoined(self, user, channel):
         """Called when I see another user joining a channel.
@@ -178,15 +191,24 @@ class TBotFactory(protocol.ClientFactory):
         reactor.stop()
 
 if __name__ == '__main__':
-    
+
+    conf = ConfigParser.SafeConfigParser()
+        
+    try:
+        conf.readfp(open('pytbot.ini'))
+    except IOError, msg:
+        print "Cant open config file: ", msg
+        sys.exit(1)
+            
+    channel = conf.get('IRC', 'channel')
+    host = conf.get('IRC', 'host')
+    port  = conf.getint('IRC', 'port')
+
     # create factory protocol and application
-    if len(sys.argv) == 1: channel = 'tourney'
-    else: channel = sys.argv[1]
     f = TBotFactory(channel, 'UNUSED')
 
     # connect factory to this host and port
-    reactor.connectTCP("irc.ircpoker.com", 6667, f)
-    #reactor.connectTCP("localhost", 6667, f)
+    reactor.connectTCP(host, port, f)
 
     # run bot
     reactor.run()
