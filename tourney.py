@@ -1393,7 +1393,11 @@ class Tourney:
             self.lastbettor = self.bb
             self.round = 0
 
-            self.deck.shuffle2(0)
+            
+            if sys.platform.startswith('linux'):
+                self.deck.shuffle2(0)
+            else:
+                self.deck.shuffle(0)
             self.deal()
 
             for p in self.players:
