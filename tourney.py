@@ -628,8 +628,8 @@ class Tourney:
         if nlive - self.nquitters() == 1:
             self.endhand(False)
 
-        # Goofy hack for when the tourney is set up stupidly
-        elif nlive == self.nallin():
+        # End round when all but one player is all in
+        elif self.nallin() >= nlive - 1:
             self.nextround()
 
         else:
@@ -1421,7 +1421,6 @@ class Tourney:
             self.curbet = self.hiblind
             self.lastbettor = self.bb
             self.round = 0
-
             
             if sys.platform.startswith('linux'):
                 self.deck.shuffle2(0)
