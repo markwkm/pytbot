@@ -499,8 +499,12 @@ class Tourney:
                     break
 
             elif p.cmd.cmd == 'JAM':
-                p.cmd.cmd = 'BET'
-                p.cmd.arg = p.bankroll + p.action
+                if p.bankroll < tocall:
+                    p.cmd.cmd = 'CALLMAX'
+                    p.cmd.arg = ''
+                else:
+                    p.cmd.cmd = 'BET'
+                    p.cmd.arg = p.bankroll + p.action
                 niterations -= 1
                 continue
 
@@ -524,7 +528,7 @@ class Tourney:
 
                     break
 
-                elif tomake == tocall:
+                elif tomake == tocall or tocall > p.bankroll:
                     p.cmd.cmd = 'CALL'
                     p.cmd.arg = tomake
                     niterations -= 1
