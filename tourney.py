@@ -16,6 +16,7 @@
 #    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 import log
 import sys
+import time
 from datetime import datetime
 import MySQLdb
 
@@ -79,6 +80,7 @@ class Tourney:
 
         self.dt = datetime(2000, 1, 1)
         self.timestamp = self.dt.now()
+        self.dbstamp = 0.0
 
         # Make sure we can talk to the database
         try:
@@ -148,10 +150,10 @@ class Tourney:
                 msg = '%s has quit.  We now have %d player' %\
                       (pid, len(self.players) - 1)
                 self.players.remove(p)
-                if len(self.players) > 1:
-                    msg += 's '
-                else:
+                if len(self.players) == 1:
                     msg += ' '
+                else:
+                    msg += 's '
                 msg += 'in the tournament.'
                 self.pubout(msg)
 
@@ -1337,11 +1339,12 @@ class Tourney:
                 if timexp >= self.blindinterval:
                     self.loblind *= 2
                     self.hiblind = self.loblind * 2
-                    self.timestamp = self.dt.now()
                     blindmsg = 'Blinds will double in %d seconds.' %\
                                self.blindinterval
                 else:
                     blindmsg = 'Blinds will double in %d seconds.' % (self.blindinterval - timexp)
+
+            self.timestamp = self.dt.now()
 
             self.pubout(' ')
             self.pubout('The blinds are currently $%d and $%d.' %\
@@ -1762,6 +1765,7 @@ class Tourney:
     def deal(self):
         log.logger.debug('Tourney.deal()')
 
+        faces = []
         for n in xrange(Tourney.nholecards):
             for p in xrange(len(self.players)):
                 player = self.players[(self.button +1+p) % len(self.players)]
@@ -1769,8 +1773,59 @@ class Tourney:
                     acard = self.deck.nextcard()
                     player.hand.addcard(acard)
                     player.hand.seat = self.players.index(player)
+                    faces.append(acard.face())
         for n in xrange(Tourney.nboardcards):
-            self.board.append(self.deck.nextcard())
+            acard = self.deck.nextcard()
+            self.board.append(acard)
+            faces.append(acard.face())
+
+
+        # Store faces for the rest of the deck
+        ndealt = len(faces)
+        log.logger.debug("Tourney.deal: dealt %d cards" % (ndealt,))
+        for n in xrange(52 - ndealt):
+            faces.append(self.deck.nextcard().face())
+
+        self.dbstamp = time.time()
+        #record hand
+        
+        try:
+            db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
+        except Exception, msg:
+            log.logger.error("Can't talk to database - exiting\n", msg)
+            self.pubout("Can't talk to the user database - panicing!")
+            sys.exit(1)
+
+        c = db.cursor()
+
+        c.execute("""INSERT into decks (timestamp, channel, c1, c2, c3, c4, c5,
+        c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20,
+        c21, c22, c23, c24, c25, c26, c27, c28, c29, c30, c31, c32, c33, c34,
+        c35, c36, c37, c38, c39, c40, c41, c42, c43, c44, c45, c46, c47, c48,
+        c49, c50, c51, c52) VALUES (%f, '%s', '%2s','%2s','%2s','%2s','%2s',
+        '%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s',
+        '%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s',
+        '%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s',
+        '%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s',
+        '%2s','%2s','%2s' )""" % (self.dbstamp, 'tourney', faces[0], faces[1],
+                                  faces[2], faces[3], faces[4], faces[5],
+                                  faces[6], faces[7], faces[8], faces[9],
+                                  faces[10], faces[11], faces[12], faces[13],
+                                  faces[14], faces[15], faces[16], faces[17],
+                                  faces[18], faces[19], faces[20], faces[21],
+                                  faces[22], faces[23], faces[24], faces[25],
+                                  faces[26], faces[27], faces[28], faces[29],
+                                  faces[30], faces[31], faces[32], faces[33],
+                                  faces[34], faces[35], faces[36], faces[37],
+                                  faces[38], faces[39], faces[40], faces[41],
+                                  faces[42], faces[43], faces[44], faces[45],
+                                  faces[46], faces[47], faces[48], faces[49],
+                                  faces[50], faces[51] ))
+
+        db.commit()
+        c.close()
+        db.close()
+
             
     def winseatsort(self, plist):
         '''Sort the winners of a multiway pot clockwise from the dealer.'''
