@@ -1,0 +1,176 @@
+#!/usr/bin/env python
+
+from twisted.protocols import irc
+from twisted.internet import reactor, protocol
+
+import re
+import sys
+import time
+
+import log
+from tourney import Tourney
+from command import Command
+
+class TBot(irc.IRCClient):
+    ''' An IRC Texas Holdem tournament  dealer'''
+
+    def pubout(self, msg):
+        log.logger.debug('TBot.pubout()')
+        
+        print '[PUB->%s]' % msg
+        self.say(self.channel, msg)
+
+    def privout(self, user, msg):
+        log.logger.debug('TBot.privout()')
+        
+        print '[PRV->%s]' % msg
+        self.msg(user, msg)
+        #self.cprivmsg(self.channel, user, msg)
+
+    def noteout(self, user, msg):
+        print '[NOTE->%s]' % msg
+        self.notice(user, msg)
+        #self.cnotice(self.channel, user, msg)
+
+    def __init__(self):
+        self.nickname = 'TBot'
+        self.versionName = 'pyTBot'
+        self.versionNum = '0.1'
+        self.versionEnv = sys.platform
+        self.channel = ''
+        self.lineRate = 0.1
+        self.tourney = Tourney(0, self.pubout, self.privout, self.noteout)
+
+    #### connection callbacks
+    def connectionMade(self):
+        irc.IRCClient.connectionMade(self)
+        log.logger.info("[connected at %s]" %\
+                        time.asctime(time.localtime(time.time())))
+
+    def connectionLost(self, reason):
+        irc.IRCClient.connectionLost(self, reason)
+        log.logger.info("[disconnected at %s]" %\
+              time.asctime(time.localtime(time.time())))
+
+    #### event callbacks
+    def signedOn(self):
+        """Called when bot has succesfully signed on to server."""
+
+        self.join(self.factory.channel)
+
+    def joined(self, channel):
+        """This will get called when the bot joins the channel."""
+        
+        print "[I have joined %s]" % channel
+        self.channel = channel
+
+    def noticed(self, user, channel, msg):
+        """This will get called when the bot receives a NOTICE."""
+        
+        user = user.split('!', 1)[0]
+        print "[NOTICE<-]<%s> %s" % (user, msg)
+
+    def privmsg(self, user, channel, msg):
+        """This will get called when the bot receives a message."""
+
+        rcmd = re.compile('^\s*(p)\s+([a-z]+)\s*([0-9]*\w*)\s*([a-z]*)\s*.*$',
+                          re.I)
+
+        user = user.split('!', 1)[0]
+        ###print "<%s>[%s] %s" % (user, channel, msg)
+
+        # Private message to me
+        if channel == self.nickname:
+            print "[PRV<-]<%s> %s" % (user, msg)
+        else:
+            print "[PUB<-]<%s> %s" % (user, msg)
+
+        match = rcmd.match(msg)
+
+        if match:
+            cmd = Command()
+            cmd.proto = 'IRC'
+
+            # FIXME: use nick for Player.myid for now.  This will not
+            # work if the bot must deal games on more than one channel
+            # or table simultaneously.
+            cmd.id = user
+            cmd.cmd = match.group(2).upper()
+            cmd.arg = match.group(3)
+            cmdlen = len(match.groups())
+            if cmdlen < 2 or cmdlen > 4:
+                log.logger.debug('Bad command:%s' % msg)                
+            else:
+                log.logger.debug('Tourneybot:%s' % cmd)                
+                if cmd.goodarg():
+                    if cmdlen == 4 and cmd.cmd == 'DOUBLE':
+                        if match.group(4) == 'hands':
+                            self.tourney.handsflag = True
+                        
+                    log.logger.debug('Tourneybot:%s' % cmd)                
+                    self.tourney.incmd(cmd)
+                else:
+                    self.privout(user,'Bad or missing argument')
+
+        else:
+            log.logger.debug('No command in message:%s' % msg)
+        
+    def action(self, user, channel, msg):
+        """This will get called when the bot sees someone do an action."""
+        
+        user = user.split('!', 1)[0]
+        print "* %s %s" % (user, msg)
+
+    # irc callbacks
+
+    def irc_NICK(self, prefix, params):
+        """Called when an IRC user changes their nickname."""
+        
+        old_nick = prefix.split('!')[0]
+        new_nick = params[0]
+        print "%s is now known as %s" % (old_nick, new_nick)
+
+    def cprivmsg(self, chan, user, message):
+
+        fmt = "CPRIVMSG %s %s :%%s" % (user, chan)
+        self.sendLine(fmt % (message,))
+
+    def cnotice(self, chan, user, message):
+
+        fmt = "CNOTICE %s %s :%%s" % (user, chan)
+        self.sendLine(fmt % (message,))
+
+class TBotFactory(protocol.ClientFactory):
+    """A factory for tbots.
+
+    A new protocol instance will be created each time we connect to the server.
+    """
+
+    # the class of the protocol to build when new connection is made
+    protocol = TBot
+
+    def __init__(self, channel, filename):
+        self.channel = channel
+        self.filename = filename
+
+    def clientConnectionLost(self, connector, reason):
+        """If we get disconnected, reconnect to server."""
+
+        connector.connect()
+
+    def clientConnectionFailed(self, connector, reason):
+        print "connection failed:", reason
+        reactor.stop()
+
+if __name__ == '__main__':
+    
+
+    # create factory protocol and application
+    f = TBotFactory(sys.argv[1], sys.argv[2])
+
+    # connect factory to this host and port
+    reactor.connectTCP("irc.ircpoker.com", 6667, f)
+    #reactor.connectTCP("localhost", 6667, f)
+
+    # run bot
+    reactor.run()
