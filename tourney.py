@@ -1162,7 +1162,7 @@ e' % (anick,))
                         activity[a] = ''
                     a += 1
                 if showhole:
-                    hole = p.hand.showhole(self.color)
+                    hole = p.hand.showhole(False)
                 else:
                     hole = ''
                 query = "INSERT INTO action VALUES (%d, '%s', 'tourney', %d, '%s', '%s', '%s', '%s', %d, %d, %d, '%s')" %\
@@ -1174,7 +1174,6 @@ e' % (anick,))
 
                 c.execute(query)
                 db.commit()
-            
                 
         c.close()
         db.close()
@@ -1271,7 +1270,7 @@ e' % (anick,))
         while next != first:
             log.logger.info('%-16s: %s' %\
                             (self.players[aseat].nick,
-                             self.players[aseat].hand.showhole()))
+                             self.players[aseat].hand.showhole(False)))
             self.pubout('%-16s: %s' % (self.players[aseat].nick,
                                          self.players[aseat].hand.showhole(self.color)))
  
