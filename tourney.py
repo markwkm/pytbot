@@ -1018,6 +1018,7 @@ e' % (anick,))
 
             if hasattr(self, 'sidepots'):
                 self.makepots()
+
                 if p.folded:
                     msg += '|    |        |'
                 else:
@@ -1447,6 +1448,9 @@ e' % (anick,))
         '''
 
         log.logger.debug('Tourney.newhand()')
+
+        if hasattr(self, 'sidepots'):
+            delattr(self, 'sidepots')
 
         if self.nlive() == self.nonvacation():
             self.pubout("Everyone's on vacation.   Aborting tourney")
