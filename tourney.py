@@ -244,7 +244,7 @@ class Tourney:
             if not self.playing:
                 self.privout(pid, 'There is currently no board to display.')
             else:
-                self.noteout(pid, 'Board:      %s' % self.printboard(self.round))
+                self.noteout(pid, 'Board:      %s' % self.printboard(self.round, self.color))
         elif c == 'POSITION':
             if not self.playing:
                 self.privout(pid, 'There is currently no game.')
@@ -1036,19 +1036,19 @@ e' % (anick,))
             status = ''
         self.noteout(pid, '+-+------------+--------+--------+------+----+--------+')
 
-    def printboard(self, nround):
+    def printboard(self, nround, color = False):
         buf = ''
         if nround == Tourney.PREFLOP:
              buf += ''
         if nround == Tourney.FLOP:
             for n in xrange(3):
-	        buf += self.board[n].face(self.color) + ' '
+	        buf += self.board[n].face(color) + ' '
         if nround == Tourney.TURN:
             for n in xrange(4):
-                buf += self.board[n].face(self.color) + ' '
+                buf += self.board[n].face(color) + ' '
         if nround == Tourney.RIVER:
             for n in xrange(5):
-                buf += self.board[n].face(self.color) + ' '
+                buf += self.board[n].face(color) + ' '
         return buf
 
     def pfromnick(self, nick):
@@ -1144,7 +1144,7 @@ e' % (anick,))
         %d, %d, %d, %d, %d, %d, '%s')") % (self.dbstamp, self.tourneytstamp,
         self.handnum, self.nplyin[0], self.potsize[0], self.nplyin[1],
         self.potsize[1], self.nplyin[2], self.potsize[2],
-        self.nplyin[3], self.potsize[3], self.printboard(self.round))
+        self.nplyin[3], self.potsize[3], self.printboard(self.round, False))
 
         c.execute(query)
             
@@ -1204,9 +1204,10 @@ e' % (anick,))
             
             # Compare hands and award pots
             log.logger.info('Hand over, current board is: %s' %\
-                            self.printboard(self.round))
+                            self.printboard(self.round, False))
             if self.nactive() - self.nallin() > 1:
-                self.pubout('Board:      %s' % self.printboard(self.round))
+                self.pubout('Board:      %s' % self.printboard(self.round,
+                                                               self.color))
             self.pubout("Players' hands:")
             self.showhands()
 
@@ -1849,7 +1850,15 @@ e' % (anick,))
             self.nplyin[Tourney.RIVER-1] = self.nlive()
         self.round += 1
 
-        self.pubout('Board:      %s' % self.printboard(self.round))
+        self.pubout('Board:      %s' % self.printboard(self.round, self.color))
+
+        # strip color codes
+        buf = buf.replace("01,00", '')
+        buf = buf.replace("02,00", '')
+        buf = buf.replace("03,00", '')
+        buf = buf.replace("04,00", '')
+        buf = buf.replace("", '')
+
         log.logger.info('%s' % buf)
 
     def flipout(self):
@@ -1918,6 +1927,8 @@ e' % (anick,))
         db.commit()
         c.close()
         db.close()
+
+        log.logger.info('New Tourney:%s:%s' % (self.tourneytstamp, nicklist))
 
         self.newhand()
 
