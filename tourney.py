@@ -89,84 +89,27 @@ class Tourney:
 
         db.close()
             
-        
-    def buildpasswd(self):
-
-        # Load password file
-        self.passwdfile = 'passwd.lst'
-        self.passwd = {}
-        try:
-            pfile = file(self.passwdfile, 'r')
-        except IOError, (errno, strerror):
-            log.logger.critical("Problem loading password file %s:%s" %\
-                  (self.passwdfile, strerror))
-            sys.exit(1)
-        
-        nplayers = 0
-        for line in pfile:
-            nplayers += 1
-            name, pswd = line.split(':')
-            pswd = pswd.strip()
-            self.passwd[name] = pswd
-        
-        pfile.close()
-        
-        log.logger.info('%d player passwords loaded' % nplayers)
-
     def replacepasswd(self, name, newpswd):
-        import os
-
         log.logger.debug('Tourney.replacepasswd()')
 
         log.logger.info('Tourney.replacepasswd: replacing password for %s:(%s)' % (name, newpswd))
 
-        success = True
 
         try:
+            db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
+        except Exception, msg:
+            log.logger.error("Can't talk to database - exiting\n", msg)
+            self.pubout("Can't talk to the user database - panicing!")
+            sys.exit(1)
 
-            nfname = os.tempnam('.')
-            nfile = file(nfname, 'w')
-            pfile = file(self.passwdfile, 'r')
-            for line in pfile:
-                (n, p) = line.split(':')
-                if n == name:
-                    nfile.write('%s:%s\n' % (name, newpswd))
-                else:
-                    nfile.write(line)
+        c = db.cursor()
 
-            nfile.flush()
+        lines = c.execute("UPDATE player SET password='%s' where "
+                          "nick='%s'" % (newpswd, name))
 
-            pfile.close()
-            nfile.close()
-        except IOError, (errno, strerror):
-            log.logger.critical("Tourney.replacepasswd:Problem replacing password")
-            success = False
-
-        if success:
-            os.rename(nfname, self.passwdfile)
-
-        self.buildpasswd()
-        
-
-    def save1passwd(self, name, pswd):
-        '''Add a new player to the password file.  Assumes that the
-        player name is actually new.'''
-
-        log.logger.debug('Tourney.save1passwd()')
-        log.logger.info('Tourney.save1passwd:Adding new player %s' % name)
-        
-        success = True
-
-        try:
-            pfile = file(self.passwdfile, 'a+')
-            pfile.write('%s:%s\n' % (name, pswd))
-            pfile.flush()
-            pfile.close()
-        except IOError, (errno, strerror):
-            log.logger.critical("Tourney.save1passwd:Problem saving password")
-            success = False
-        
-        return success
+        db.commit()
+        c.close()
+        db.close()
 
     def incmd(self, cmd):
         log.logger.debug('Tourney.incmd()')
