@@ -431,6 +431,8 @@ class Tourney:
                         log.logger.info('Tourney.run:%s checks' % p.nick)
                     self.pubout('%s checks.' % p.nick)
                     p.cmd.cmd = 'FOLD'
+                    if self.next2act == self.bb:
+                        self.bbacted = True
                 else:
                     p.folded = True
                     p.cmd.cmd = 'NOOP'
@@ -448,6 +450,9 @@ class Tourney:
                         log.logger.info('Tourney.run:%s folds' % p.nick)
 
             elif p.cmd.cmd == 'CALL':
+
+                if self.next2act == self.bb:
+                    self.bbacted = True
 
                 # call $0 == check if no bet
                 if tocall == 0:
@@ -477,6 +482,9 @@ class Tourney:
             # Call any bet
             elif p.cmd.cmd == 'CALLMAX':
 
+                if self.next2act == self.bb:
+                    self.bbacted = True
+
                 # Call $0 == check
                 if tocall == 0:
                     p.cmd.cmd = 'CHECK'
@@ -489,6 +497,8 @@ class Tourney:
 
             elif p.cmd.cmd == 'RAISE':
                 advseat = self.RAISE(p)
+                if self.next2act == self.bb:
+                    self.bbacted = True
                 if not advseat:
                     sendstatus = False
                     break
@@ -502,6 +512,8 @@ class Tourney:
             elif p.cmd.cmd == 'BET' or p.cmd.cmd == 'MAKE':
                 tomake = int(p.cmd.arg)
 
+                if self.next2act == self.bb:
+                    self.bbacted = True
 
                 if tomake < tocall:
                     self.privout(p.nick,
@@ -529,6 +541,9 @@ class Tourney:
                     continue
             
             elif p.cmd.cmd == 'CHECK':
+
+                if self.next2act == self.bb:
+                    self.bbacted = True
 
                 p.cmd.cmd = 'NOOP'
 
@@ -558,8 +573,8 @@ class Tourney:
                 sendstatus = False
                 break
 
-            self.buildactivelist()
-            nactive = len(self.activelist)
+            #self.buildactivelist()
+            nactive = len(self.activeplayers())
 
             # End of hand if only one active player
             if nactive == 1:
