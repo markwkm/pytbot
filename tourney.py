@@ -1064,10 +1064,14 @@ class Tourney:
     def endhand(self, showdown = True):
         log.logger.debug('Tourney.endhand()')
 
+        showhole = None
         if showdown:
             self.makepots()
             showhole = self.showdown()
 
+        #FIXME: This is broken when, heads up, a non quitter is at a
+        #       lower index in self.players than the quitter and is
+        #       all-in.
         quitters = []
         for p in self.players:
             if not p.busted:
@@ -1089,10 +1093,10 @@ class Tourney:
             for q in quitters:
                 msg = '%s finished #%d out of %d.  %d player' %\
                       (q.nick, place, self.nstartplayers, place - 1)
-                if place - 1 > 1:
-                    msg += 's remain.'
-                else:
+                if place - 1 == 1:
                     msg += ' remains.'
+                else:
+                    msg += 's remain.'
                 self.pubout(msg)
                 place -= 1
                 q.busted = True
