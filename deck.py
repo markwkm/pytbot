@@ -64,11 +64,32 @@ class Deck:
             self.cards.sort()
         self.topcard = -1
 
-        for i in xrange(51, -1, -1):
-            rnum = self.rand51()
-            temp = self.cards[rnum]
-            self.cards[rnum] = self.cards[i]
-            self.cards[i] = temp
+        for j in xrange(51, 0, -1):
+            k = self.rand64k(j)
+            self.cards[j], self.cards[k] = self.cards[k], self.cards[j]
+            
+
+    def rand64k(self, n = 51):
+        '''Draw a random integer between 0 and n using the middle 16
+        bit of 32 bits read from /dev/urandom.
+
+        Thanks to DGH for the algorithm as well as general discussions
+        of randomness.
+        '''
+
+        log.logger.debug('Deck.rand4()')
+
+        rf = open('/dev/urandom', 'r')
+
+        rn = rf.read(4)
+
+        # Convert to an unsigned int
+        rn = unpack('I', rn)[0]
+
+        # Shave off lower and upper 8 bits 
+        rn = (rn >> 8) & 0x0000FFFF
+
+        return (rn * n) >> 16
 
     def rand51(self):
         '''Draw a random integer between 0 and 51 using /dev/(u)random
