@@ -68,7 +68,6 @@ class Deck:
             k = self.rand64k(j)
             self.cards[j], self.cards[k] = self.cards[k], self.cards[j]
             
-
     def rand64k(self, n = 51):
         '''Draw a random integer between 0 and n using the middle 16
         bit of 32 bits read from /dev/urandom.
