@@ -20,7 +20,7 @@ class Command:
     "Extracts protocol, id, command, and arg from mail filter input"
 
     def __init__(self, user='', liszt = []):
-        log.logger.debug('Command.__init__()')
+        #log.logger.debug('Command.__init__()')
 
         self.proto = 'IRC'
         self.id = user
@@ -63,12 +63,12 @@ class Command:
                         self.arg = liszt[2]
 
     def __str__(self):
-        log.logger.debug('Command.__str__()')
+        #log.logger.debug('Command.__str__()')
 
         return '[Command:%s:%s:%s:%s]' %\
                (self.proto, self.id, self.cmd, self.arg)
     def extractcmd(self, cmdstring):
-        log.logger.debug('Command.extractcmd()')
+        #log.logger.debug('Command.extractcmd()')
 
         if cmdstring:
             try:
@@ -90,7 +90,7 @@ class Command:
 
         goodarg = True;
         
-        log.logger.debug('Command.goodarg()')
+        #log.logger.debug('Command.goodarg()')
 
         intargcmds = ['BET', 'CALL', 'MAKE', 'RAISE', 'BLIND',
                       'DOUBLE', 'BANKROLL']

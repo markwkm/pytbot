@@ -202,6 +202,7 @@ class Tourney:
                 self.pubout('%s has turned off colored cards.' % (pid,))
             else:
                 self.pubout('%s has turned on colored cards.  Please complain loudly if this affects your ability to play.' % pid)
+                #self.pubout('The color command has been indefinitely disabled.  Colored cards can be viewed using a relatively simple client script.')
             self.color = not self.color
 
         elif c == 'ABORT':
@@ -402,7 +403,7 @@ class Tourney:
         else:
             (anick, apass) = c.fetchone()
             if lines > 1:
-                log.logger.Warning("Found more than one entry in the player database for %s" % (anick,))
+                log.logger.warning("Found more than one entry in the player database for %s" % (anick,))
 
             log.logger.debug("Found nick %s (%s) in database" % (anick, apass))
 
@@ -1148,128 +1149,128 @@ e' % (anick,))
 
         query = ("INSERT INTO hands (timestamp, channel, tourney,\
         game, plflop, potflop, plturn, potturn, plriver, potriver,\
-        plshow, potshow, board) VALUES (%d, 'tourney', %d, %d, %d, %d,\
+        plshow, potshow, board) VALUES (%f, 'tourney', %f, %d, %d, %d,\
         %d, %d, %d, %d, %d, %d, '%s')") % (self.dbstamp, self.tourneytstamp,
         self.handnum, self.nplyin[0], self.potsize[0], self.nplyin[1],
         self.potsize[1], self.nplyin[2], self.potsize[2],
         self.nplyin[3], self.potsize[3], self.printboard(self.round, False))
-
+        
         c.execute(query)
             
         db.commit()
-
+        
         #record player action
         for p in self.players:
             if p.activity[0]:
-                activity = [None,None,None,None]
-                a = 0
-                for s in p.activity:
-                    if s:
-                        activity[a] = s
-                    else:
-                        activity[a] = ''
-                    a += 1
-                if showhole and not p.folded:
-                    hole = p.hand.showhole(False)
-                else:
-                    hole = ''
-                query = "INSERT INTO action VALUES (%d, '%s', 'tourney', %d, '%s', '%s', '%s', '%s', %d, %d, %d, '%s')" %\
-                        (self.dbstamp, p.nick, p.position, activity[0], activity[1],
-                         activity[2], activity[3], p.oldbankroll, p.inplay, p.won,
-                         hole)
-
-                log.logger.debug('query:%s' % (query,))
-
-                c.execute(query)
-                db.commit()
-                
+        	activity = [None,None,None,None]
+        	a = 0
+        	for s in p.activity:
+        	    if s:
+        		activity[a] = s
+        	    else:
+        		activity[a] = ''
+        	    a += 1
+        	if showhole and not p.folded:
+        	    hole = p.hand.showhole(False)
+        	else:
+        	    hole = ''
+        	query = "INSERT INTO action VALUES (%f, '%s', 'tourney', %d, '%s', '%s', '%s', '%s', %d, %d, %d, '%s')" %\
+        		(self.dbstamp, p.nick, p.position, activity[0], activity[1],
+        		 activity[2], activity[3], p.oldbankroll, p.inplay, p.won,
+        		 hole)
+        
+        	log.logger.debug('query:%s' % (query,))
+        
+        	c.execute(query)
+        	db.commit()
+        	
         c.close()
         db.close()
-
+        
         if self.tourneyover():
             self.endtourney()
-
+        
     def showdown(self):
         from hand import Hand
-
+        
         log.logger.debug('Tourney.showdown()')
-
+        
         active = self.activeplayers()
-
+        
         self.potsize[3] = self.pot
         self.nplyin[3] = len(active)
-
+        
         if len(active) == 1:
-
+        
             showhole = False;
             active[0].bankroll += self.pot
             active[0].won += self.pot
             log.logger.info('%s wins $%d' % (active[0].nick, self.pot))
-
+        
             self.pubout('%s wins $%d.' % (active[0].nick, self.pot))
         else:
             showhole = True;
             
             # Compare hands and award pots
             log.logger.info('Hand over, current board is: %s' %\
-                            self.printboard(self.round, False))
+        		    self.printboard(self.round, False))
             if self.nactive() - self.nallin() > 1:
-                self.pubout('Board:      %s' % self.printboard(self.round,
-                                                               self.color))
+        	self.pubout('Board:      %s' % self.printboard(self.round,
+        						       self.color))
             self.pubout("Players' hands:")
             self.showhands()
-
+        
             for pot in self.pots:
-                winners = pot.award()
-                nwinners = len(winners)
-                share = pot.value / nwinners
-                leftovers = pot.value % nwinners
-
-                log.logger.debug('pot %d: %d winners $%d share %d odd chips' %\
-                      (self.pots.index(pot), nwinners, share, leftovers))
-
-                # Sort winners for odd chip distribution
-                if leftovers and nwinners > 1:
-                    log.logger.debug('Distributing odd chips')
-                    wseatorder = winners[:]
-                    sorted = self.winseatsort(wseatorder)
-                    
-                for w in winners:
-                    
-                    myshare = share
-
-                    # Distribute odd chip
-                    if leftovers and w in sorted and \
-                           (sorted.index(w) < leftovers):
-                        log.logger.debug('%s gets extra chip' % w.nick)
-                        myshare = share + 1
-
-                    w.bankroll += myshare
-                    w.won += myshare
-                    if len(self.pots) == 1:
-                        log.logger.info('%s wins $%d with %s %s' %\
-                                        (w.nick, myshare,
-                                         Hand.TYPE_STR[w.hand.type],
-                                         w.hand.rankorderstr()))
-                        self.pubout('High: %s wins $%d with %s %s.' %\
-                                    (w.nick, myshare,
-                                     Hand.TYPE_STR[w.hand.type],
-                                     w.hand.rankorderstr()))
-                    else:
-
-                        # print 'return uncalled foo' for a pot with a
-                        # single player
-                        if len(pot.players) == 1:
-                            log.logger.info('Pot %d: uncalled $%d returned to %s' % (len(pot.players), pot.value, w.nick))
-                            self.pubout('%s wins $%d' % (w.nick, pot.value))
-                        else:
-                            log.logger.info('Pot %d: %s wins $%d with %s %s' % (self.pots.index(pot), w.nick, myshare, Hand.TYPE_STR[w.hand.type], w.hand.rankorderstr()))
-                            self.pubout('%s wins $%d with %s %s.' %\
-                                        (w.nick, myshare,
-                                         Hand.TYPE_STR[w.hand.type],
-                                         w.hand.rankorderstr()))
+        	winners = pot.award()
+        	nwinners = len(winners)
+        	share = pot.value / nwinners
+        	leftovers = pot.value % nwinners
+        
+        	log.logger.debug('pot %d: %d winners $%d share %d odd chips' %\
+        	      (self.pots.index(pot), nwinners, share, leftovers))
+        
+        	# Sort winners for odd chip distribution
+        	if leftovers and nwinners > 1:
+        	    log.logger.debug('Distributing odd chips')
+        	    wseatorder = winners[:]
+        	    sorted = self.winseatsort(wseatorder)
+        	    
+        	for w in winners:
+        	    
+        	    myshare = share
+        
+        	    # Distribute odd chip
+        	    if leftovers and w in sorted and \
+        		   (sorted.index(w) < leftovers):
+        		log.logger.debug('%s gets extra chip' % w.nick)
+        		myshare = share + 1
+        
+        	    w.bankroll += myshare
+        	    w.won += myshare
+        	    if len(self.pots) == 1:
+        		log.logger.info('%s wins $%d with %s %s' %\
+        				(w.nick, myshare,
+        				 Hand.TYPE_STR[w.hand.type],
+        				 w.hand.rankorderstr()))
+        		self.pubout('High: %s wins $%d with %s %s.' %\
+        			    (w.nick, myshare,
+        			     Hand.TYPE_STR[w.hand.type],
+        			     w.hand.rankorderstr()))
+        	    else:
+        
+        		# print 'return uncalled foo' for a pot with a
+        		# single player
+        		if len(pot.players) == 1:
+        		    log.logger.info('Pot %d: uncalled $%d returned to %s' % (self.pots.index(pot), pot.value, w.nick))
+        		    self.pubout('%s wins $%d' % (w.nick, pot.value))
+        		else:
+        		    log.logger.info('Pot %d: %s wins $%d with %s %s' % (self.pots.index(pot), w.nick, myshare, Hand.TYPE_STR[w.hand.type], w.hand.rankorderstr()))
+        		    self.pubout('%s wins $%d with %s %s.' %\
+        				(w.nick, myshare,
+        				 Hand.TYPE_STR[w.hand.type],
+        				 w.hand.rankorderstr()))
         return showhole
-
+        
     def showhands(self):
         log.logger.debug('Tourney.showhands()')
         
@@ -1278,22 +1279,22 @@ e' % (anick,))
         aseat = first
         while next != first:
             log.logger.info('%-16s: %s' %\
-                            (self.players[aseat].nick,
-                             self.players[aseat].hand.showhole(False)))
+        		    (self.players[aseat].nick,
+        		     self.players[aseat].hand.showhole(False)))
             self.pubout('%-16s: %s' % (self.players[aseat].nick,
-                                         self.players[aseat].hand.showhole(self.color)))
- 
+        				 self.players[aseat].hand.showhole(self.color)))
+        
             self.fillhand(self.players[aseat])
             last = aseat
             aseat = self.nextactiveseat(last)
             next = aseat
-
+        
     def fillhand(self, player):
         log.logger.debug('Tourney.fillhand()')
-
+        
         for card in self.board:
             player.hand.addcard(card)
-
+        
     def nextactiveseat(self, seat=-1):
         '''Return the seat number of the player who will be next to
         act after the current active player.
@@ -1301,9 +1302,9 @@ e' % (anick,))
         An optional argument allows you to get the player who will be
         next to act after an arbitrary seat, specified by an integer
         seat number.'''
-
+        
         log.logger.debug('Tourney.nextactiveseat()')
-
+        
         if seat >= 0:
             oldas = seat
         else:
@@ -1315,67 +1316,67 @@ e' % (anick,))
             newas = (oldas + offset) % nplayers 
             if(not self.players[newas].folded and
                not self.players[newas].busted):
-                return newas
+        	return newas
         return oldas
-
+        
     def tourneyover(self): return self.nlive() == 1
-
+        
     def endtourney(self, abort = False):
         log.logger.debug('Tourney.endtourney()')
-
+        
         if not abort:
             plist = self.activeplayers()
-
+        
             if len(plist) > 1:
-                log.logger.critical('Tourney.endtourney called with > 1 active player!')
-
+        	log.logger.critical('Tourney.endtourney called with > 1 active player!')
+        
             else:
-                self.finishers.append(plist[0].nick)
-                self.pubout('The tourney is over.  %s wins!  Congratulations!' % plist[0].nick)
-                log.logger.info('Tourney.endtourney: Tourney over, %s wins' % plist[0].nick)
-
+        	self.finishers.append(plist[0].nick)
+        	self.pubout('The tourney is over.  %s wins!  Congratulations!' % plist[0].nick)
+        	log.logger.info('Tourney.endtourney: Tourney over, %s wins' % plist[0].nick)
+        
             # Replace tourney DB entry with players in order of finish
             try:
-                db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
+        	db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
             except Exception, msg:
-                log.logger.error("Can't talk to database - exiting\n", msg)
-                self.pubout("Can't talk to the user database - panicing!")
-                sys.exit(1)
-
+        	log.logger.error("Can't talk to database - exiting\n", msg)
+        	self.pubout("Can't talk to the user database - panicing!")
+        	sys.exit(1)
+        
             c = db.cursor()
-
+        
             c.execute("SELECT MAX(timestamp) from tournies where channel='tourney'")
-
+        
             maxstamp = c.fetchone()[0]
             if maxstamp:
-                self.finishers.reverse()
-                sets = ""
-                playerconv = ""
-                for n in xrange(len(self.finishers)):
-                    sets += "player%d='%s'," % (n+1, self.finishers[n])
-
-                sets = sets.rstrip(',')
-
-                query = "UPDATE tournies SET %s WHERE timestamp=%d" %\
-                        (sets,maxstamp)
-
-                log.logger.debug('query:%s' % (query,))
-
-                c.execute(query)
-
-                db.commit()
-	    c.close()
-	    db.close()
-
+        	self.finishers.reverse()
+        	sets = ""
+        	playerconv = ""
+        	for n in xrange(len(self.finishers)):
+        	    sets += "player%d='%s'," % (n+1, self.finishers[n])
+        
+        	sets = sets.rstrip(',')
+        
+        	query = "UPDATE tournies SET %s WHERE timestamp like '%s%%'" %\
+        		(sets,maxstamp)
+        
+        	log.logger.info('query:%s' % (query,))
+        
+        	c.execute(query)
+        
+        	db.commit()
+            c.close()
+            db.close()
+        
         else:
             log.logger.info('Tourney.endtourney: Tourney aborted!')
-
-
+        
+        
         self.players = []
         self.finishers = []
-
+        
         self.playing = False
-
+        
         self.ante = 0
         self.loblind = 10
         self.hiblind = 20
@@ -1401,31 +1402,31 @@ e' % (anick,))
         self.round = 0
         self.board = []
         self.activelist = []
-
+        
         if hasattr(self, 'sidepots'):
             delattr(self, 'sidepots')
-
+        
         #FIXME: Start loading players from the waiting list here...
-
+        
     def nlive(self):
         'Count how many unbusted players are at the table.'
-      
+        
         log.logger.debug('Tourney.nlive()')
-
+        
         n = 0
         for p in self.players:
             if not p.busted:
-                n += 1
+        	n += 1
         return n
-
+        
     def newhand(self):
         '''Prepare the table for the next hand.
-
+        
         As far as the blinds and button go, what happens depends on
         how many players are left and wether or not one or more of the
         blinds were eliminated last hand.  When there are three or
         more players remaining, there are three possible situations:
-
+        
         - The big blind was eliminated--there will be no small blind
           this hand.  *Next* hand the button goes to the empty seat of
           the player who would have been in the small blind and the
@@ -1434,24 +1435,25 @@ e' % (anick,))
         - The small blind was eliminated--the button goes to the empty
           seat of the player who had the small blind and the blinds
           advance normally.
-
+        
         - Both blinds survived last hand--button and blinds advance
           normally.
-
+        
         When there are only two players remaining, the buttons and
         blinds are handled as follows:
-
+        
         - The big blind advances normally and the other player posts
           the small blind.  The button goes to the small blind.  The
           small blind acts first preflop.  The big blind acts first
           following the flop.
         '''
-
+        
         log.logger.debug('Tourney.newhand()')
-
+        
+        
         if hasattr(self, 'sidepots'):
             delattr(self, 'sidepots')
-
+        
         if self.nlive() == self.nonvacation():
             self.pubout("Everyone's on vacation.   Aborting tourney")
             self.endtourney(True)
@@ -1459,190 +1461,201 @@ e' % (anick,))
              self.endtourney(True)
         else:
             self.handnum += 1
-
+        
+            #FIXME: Find a better way to do this.  Autoincrement?
+            oldstamp = self.dbstamp
+            self.dbstamp = time.time()
+            if self.dbstamp == oldstamp:
+        	log.logger.warning("Tourney timestamp collision.  Sleeping (%d)" %\
+        			   (self.dbstamp,))
+        	time.sleep(1)
+        	self.dbstamp = time.time()
+        
+            log.logger.info('New Hand:%d:%s' % (self.handnum, self.dbstamp))
+        
             # Time to double blinds?
             if self.handsinterval > 0:
-                handstogo = self.handsinterval - (self.handnum % self.handsinterval)
-                if handstogo  ==  self.handsinterval:
-                    self.loblind *= 2
-                    self.hiblind = self.loblind * 2
-                    blindmsg = 'Blinds will double in %d hands.' %\
-                                self.handsinterval
-                else:
-                    if self.handnum > 1:
-                        blindmsg = 'Blinds will double '
-                        if handstogo > 1:
-                            blindmsg += 'in %d hands.' % (handstogo,)
-                        else:
-                            blindmsg += ' next hand.'
-                                  
-                    else:
-                        blindmsg = 'Blinds will double in %d hands.' %\
-                                   (self.handsinterval,)
-
+        	handstogo = self.handsinterval - (self.handnum % self.handsinterval)
+        	if handstogo  ==  self.handsinterval:
+        	    self.loblind *= 2
+        	    self.hiblind = self.loblind * 2
+        	    blindmsg = 'Blinds will double in %d hands.' %\
+        			self.handsinterval
+        	else:
+        	    if self.handnum > 1:
+        		blindmsg = 'Blinds will double '
+        		if handstogo > 1:
+        		    blindmsg += 'in %d hands.' % (handstogo,)
+        		else:
+        		    blindmsg += ' next hand.'
+        			  
+        	    else:
+        		blindmsg = 'Blinds will double in %d hands.' %\
+        			   (self.handsinterval,)
+        
             else:
-                self.dt = datetime(2000, 1, 1)
-                self.dt = self.dt.now()
-                timexp = (self.dt - self.timestamp).seconds
-                if timexp >= self.blindinterval:
-                    self.loblind *= 2
-                    self.hiblind = self.loblind * 2
-                    self.timestamp = self.dt.now()
-                    blindmsg = 'Blinds will double in %d seconds.' %\
-                               self.blindinterval
-                else:
-                    blindmsg = 'Blinds will double in %d seconds.' % (self.blindinterval - timexp)
-
-
-
+        	self.dt = datetime(2000, 1, 1)
+        	self.dt = self.dt.now()
+        	timexp = (self.dt - self.timestamp).seconds
+        	if timexp >= self.blindinterval:
+        	    self.loblind *= 2
+        	    self.hiblind = self.loblind * 2
+        	    self.timestamp = self.dt.now()
+        	    blindmsg = 'Blinds will double in %d seconds.' %\
+        		       self.blindinterval
+        	else:
+        	    blindmsg = 'Blinds will double in %d seconds.' % (self.blindinterval - timexp)
+        
+        
+        
             self.pubout(' ')
             self.pubout('The blinds are currently $%d and $%d.' %\
-                        (self.loblind, self.hiblind))
-
+        		(self.loblind, self.hiblind))
+        
             self.pubout(blindmsg)
             self.pubout(' ')
             
             self.bbacted = False
-
-
+        
+        
             for player in self.players:
-                player.cmd = Command()
-                player.allin = 0
-                player.inplay = 0
-                player.action = 0
-                player.won = 0
-                player.oldbankroll = player.bankroll
-                player.lastbet = 0
-                player.folded = False
-                player.allin = False
-                player.activity = ['','','','']
-                player.hand.muck()
-                if player.vacation:
-                    player.cmd.cmd = 'FOLD'
-
+        	player.cmd = Command()
+        	player.allin = 0
+        	player.inplay = 0
+        	player.action = 0
+        	player.won = 0
+        	player.oldbankroll = player.bankroll
+        	player.lastbet = 0
+        	player.folded = False
+        	player.allin = False
+        	player.activity = ['','','','']
+        	player.hand.muck()
+        	if player.vacation:
+        	    player.cmd.cmd = 'FOLD'
+        
             self.board = []
             self.pot = 0
-
+        
             self.pubout('Game #%d, %d players.  Dealing Holdem high' %\
-                        (self.handnum, self.nlive()))
-
+        		(self.handnum, self.nlive()))
+        
             if self.nactive() >= 3:
-
-                # If the big blind was eliminated then there's no small
-                # blind this hand. Set flag so the button doesn't move
-                # next hand.
-                if self.players[self.bb].busted:
-                    self.nosb = True
-                    self.butflag = True
-                else:
-                    self.nosb = False
-
-                # Who's in the small blind?
-                buttonadv = True
-                if self.nosb:
-                    pass
-                else:
-
-                    # The small blind is last hand's big blind
-                    self.sb = self.bb
-
-                    # If the small blind was eliminated then the button
-                    # stays put
-                    if self.players[self.sb].busted:
-                        buttonadv = False
-
-                # Who's in the big blind?
-                self.bb = self.nextactiveseat(self.bb)
-
-                # Button, button, who gets the button?
-
-                # Do not advance button if this is the second hand
-                # following the elimination of the big blind.
-                if self.butflag:
-                    self.butflag = False
-                    buttonadv = False
-
-                if buttonadv:
-                    self.button = self.nextactiveseat(self.button)
-
-                else:
-
-                    # If the player with the button is eliminated and
-                    # we're not moving the button, then the button moves
-                    # *backward* one seat
-                    if self.players[self.button].busted:
-                        self.button = self.prevactiveseat(self.button)
-
+        
+        	# If the big blind was eliminated then there's no small
+        	# blind this hand. Set flag so the button doesn't move
+        	# next hand.
+        	if self.players[self.bb].busted:
+        	    self.nosb = True
+        	    self.butflag = True
+        	else:
+        	    self.nosb = False
+        
+        	# Who's in the small blind?
+        	buttonadv = True
+        	if self.nosb:
+        	    pass
+        	else:
+        
+        	    # The small blind is last hand's big blind
+        	    self.sb = self.bb
+        
+        	    # If the small blind was eliminated then the button
+        	    # stays put
+        	    if self.players[self.sb].busted:
+        		buttonadv = False
+        
+        	# Who's in the big blind?
+        	self.bb = self.nextactiveseat(self.bb)
+        
+        	# Button, button, who gets the button?
+        
+        	# Do not advance button if this is the second hand
+        	# following the elimination of the big blind.
+        	if self.butflag:
+        	    self.butflag = False
+        	    buttonadv = False
+        
+        	if buttonadv:
+        	    self.button = self.nextactiveseat(self.button)
+        
+        	else:
+        
+        	    # If the player with the button is eliminated and
+        	    # we're not moving the button, then the button moves
+        	    # *backward* one seat
+        	    if self.players[self.button].busted:
+        		self.button = self.prevactiveseat(self.button)
+        
             else:
-
-                # Heads-up
-                self.bb = self.nextactiveseat(self.bb)
-                self.sb = self.nextactiveseat(self.bb)
-                self.button = self.sb
-
+        
+        	# Heads-up
+        	self.bb = self.nextactiveseat(self.bb)
+        	self.sb = self.nextactiveseat(self.bb)
+        	self.button = self.sb
+        
             self.next2act = self.nextactiveseat(self.bb)
-
+        
             #self.postantes()
-
+        
             self.handstatus()
             self.postblinds()
-
+        
             self.curbet = self.hiblind
             self.lastbettor = self.bb
             self.round = 0
             
             if sys.platform.startswith('linux'):
-                self.deck.shuffle2(0)
+        	self.deck.shuffle2(0)
             else:
-                self.deck.shuffle(0)
+        	self.deck.shuffle(0)
             self.deal()
-
+        
             playernum = 1
-	    playernums = ""
-	    playerconv = ""
+            playernums = ""
+            playerconv = ""
             nicklist = ""
             for p in self.players:
-                if not p.busted:
-                    self.noteout(p.nick, 'Your hole cards are: %s' %\
-                                 p.hand.showhole(self.color))
-
-                    # build strings for SQL query
-                    playernums += "player%d," % (playernum,)
-                    playernum += 1
-                    playerconv += "%s,"
-                    nicklist += "'%s'," % (p.nick,)
-                    
+        	if not p.busted:
+        	    self.noteout(p.nick, 'Your hole cards are: %s' %\
+        			 p.hand.showhole(self.color))
+        
+        	    # build strings for SQL query
+        	    playernums += "player%d," % (playernum,)
+        	    playernum += 1
+        	    playerconv += "%s,"
+        	    nicklist += "'%s'," % (p.nick,)
+        	    
             playernums = playernums.rstrip(',')
             playerconv = playerconv.rstrip(',')
             nicklist = nicklist.rstrip(',')
-
-            query = "INSERT INTO roster (timestamp, numplayers, %s) VALUES (%%d, %%d, %s)" % (playernums, playerconv)
-
-	    log.logger.debug('query:%s' % (query,))
-
+        
+            query = "INSERT INTO roster (timestamp, numplayers, %s) VALUES (%%f, %%d, %s)" % (playernums, playerconv)
+        
+            log.logger.debug('query:%s' % (query,))
+        
             data = (self.dbstamp, self.nlive()) + tuple(nicklist.split(','))
-                    
-	    log.logger.debug('data:%s' % (data,))
-
+        	    
+            log.logger.debug('data:%s' % (data,))
+        
             #record roster
             try:
-                db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
+        	db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
             except Exception, msg:
-                log.logger.error("Can't talk to database - exiting\n", msg)
-                self.pubout("Can't talk to the user database - panicing!")
-                sys.exit(1)
-
+        	log.logger.error("Can't talk to database - exiting\n", msg)
+        	self.pubout("Can't talk to the user database - panicing!")
+        	sys.exit(1)
+        
             c = db.cursor()
-
+        
             c.execute(query % data)
             
             db.commit()
             c.close()
             db.close()
-
+        
             self.nplyin = [0, 0, 0, 0]
             self.potsize = [0, 0, 0, 0]
-
+        
             self.run(True)
             #####log.logger.debug('Tourney.newhand:%s is next to act. (%d to call)' %\
             #####                 (self.players[self.next2act].nick,
@@ -1651,43 +1664,43 @@ e' % (anick,))
             #####self.pubout('%s is next to act. (%d to call)' %\
             #####            (self.players[self.next2act].nick,
             #####            self.curbet - self.players[self.next2act].action))
-
+        
     def handstatus(self):
         log.logger.debug('Tourney.handstatus()')
-
+        
         nout = 0
         dealvac = '  '
         msg = ''
         for p in self.players:
             if p.busted:
-                continue
+        	continue
             nout += 1
             if p.vacation:
-                if self.button == self.players.index(p):
-                    dealvac = 'VB'
-                else:
-                    dealvac = 'V '
+        	if self.button == self.players.index(p):
+        	    dealvac = 'VB'
+        	else:
+        	    dealvac = 'V '
             elif self.button == self.players.index(p):
-                dealvac = 'B-'
-
+        	dealvac = 'B-'
+        
             msg += '%2s%-9s%7d   ' % (dealvac, p.nick, p.bankroll)
             if nout == 3:
-                self.pubout(msg)
-                dealvac = '  '
-                msg = ''
-                nout = 0
+        	self.pubout(msg)
+        	dealvac = '  '
+        	msg = ''
+        	nout = 0
             else:
-                dealvac = '  '
-
+        	dealvac = '  '
+        
         msg = msg.rstrip()
         if msg:
             self.pubout(msg)
-
+        
     def postblinds(self):
         'Post blinds.  Handle all-ins.'
-
+        
         log.logger.debug('Tourney.postblinds()')
-
+        
         sbbr = self.players[self.sb].bankroll
         if sbbr <= self.loblind:
             self.players[self.sb].bankroll = 0
@@ -1696,9 +1709,9 @@ e' % (anick,))
             self.players[self.sb].allin = True
             self.pot += sbbr
             self.pubout('%s blinds $%d and is all in.  Pot is now $%d.' %\
-                        (self.players[self.sb].nick, sbbr, self.pot))
+        		(self.players[self.sb].nick, sbbr, self.pot))
             log.logger.info('%s blinds $%d and is all-in' %\
-                            (self.players[self.sb].nick, sbbr))
+        		    (self.players[self.sb].nick, sbbr))
             self.sidepots = True
         else:
             self.players[self.sb].bankroll -= self.loblind
@@ -1706,11 +1719,11 @@ e' % (anick,))
             self.players[self.sb].action = self.loblind
             self.pot += self.loblind
             self.pubout('%s blinds $%d.  Pot is now $%d.' %\
-                        (self.players[self.sb].nick, self.loblind, self.pot))
+        		(self.players[self.sb].nick, self.loblind, self.pot))
             log.logger.info('%s blinds $%d' %\
-                            (self.players[self.sb].nick,
-                             self.loblind))
-
+        		    (self.players[self.sb].nick,
+        		     self.loblind))
+        
         self.maxaction = self.players[self.sb].action
         bbbr = self.players[self.bb].bankroll
         if bbbr <= self.hiblind:
@@ -1720,9 +1733,9 @@ e' % (anick,))
             self.players[self.bb].allin = True
             self.pot += bbbr
             self.pubout('%s blinds $%d and is all in.  Pot is now $%d.' %\
-                        (self.players[self.bb].nick, bbbr, self.pot))
+        		(self.players[self.bb].nick, bbbr, self.pot))
             log.logger.info('%s blinds $%d and is all-in' %\
-                            (self.players[self.bb].nick, bbbr))
+        		    (self.players[self.bb].nick, bbbr))
             self.sidepots = True
         else:
             self.players[self.bb].bankroll -= self.hiblind
@@ -1730,129 +1743,129 @@ e' % (anick,))
             self.players[self.bb].action = self.hiblind
             self.pot += self.hiblind
             self.pubout('%s blinds $%d.  Pot is now $%d.' %\
-                        (self.players[self.bb].nick, self.hiblind, self.pot))
+        		(self.players[self.bb].nick, self.hiblind, self.pot))
             log.logger.info('%s blinds $%d' %\
-                            (self.players[self.bb].nick,
-                             self.hiblind))
-
+        		    (self.players[self.bb].nick,
+        		     self.hiblind))
+        
         if self.players[self.bb].action > self.maxaction:
             self.maxaction = self.players[self.bb].action
         self.minraise = self.hiblind
-
+        
         self.players[self.sb].activity[0] = 'B'
         self.players[self.bb].activity[0] = 'B'
-
+        
     def nonvacation(self):
         'Count how many players are on vacation'
-
+        
         log.logger.debug('Tourney.nonvacation()')
-
+        
         n = 0
         for p in self.players:
             if p.vacation:
-                n += 1
+        	n += 1
         return n
-
+        
     def nactive(self):
         'Count how many active players are at the table.'
-
+        
         log.logger.debug('Tourney.nactive()')
-
+        
         n = 0
         for p in self.players:
             if p.active():
-                n += 1
+        	n += 1
         return n
-
+        
     def nallin(self):
         'Count how many players are all-in.'
-
+        
         log.logger.debug('Tourney.nallin()')
-
+        
         n = 0
         for p in self.players:
             if p.allin:
-                n += 1
+        	n += 1
         return n
-
+        
     def nquitters(self):
         'Count how many players are quitting.'
-
+        
         nquitters = 0
         for p in self.players:
             if p.quit:
-                nquitters += 1
-
+        	nquitters += 1
+        
         return nquitters
-
+        
     def nextround(self):
         log.logger.debug('Tourney.nextround()')
-
+        
         # End the hand if we're at the river
         if self.round == Tourney.RIVER:
             self.endhand()
             if not self.playing:
-                return
+        	return
             self.newhand()
             return
-
+        
         nactive = self.nactive()
         nallin = self.nallin()
-
+        
         buf = ''
         buf += '%d players' % nactive
         if nallin:
             buf += ', %d all in' % nallin
-
+        
         log.logger.info(buf)
-
+        
         # Flip the rest of the board and end the hand
         # if everyone (or nearly everyone) is all in
         if nactive - nallin <= 1:
             self.flipout()
             self.endhand()
             if not self.playing:
-                return
+        	return
             self.newhand()
             return
-
+        
         # If we get this far, reset current round action
         for p in self.players:
             p.action = 0
             p.lastbet = 0
-
+        
         self.flipcards()
         self.minraise = self.hiblind
         self.curbet = 0
-
+        
         # Find the first player to the left of the button who's not all in
         goodbettor = False
         self.lastbettor = self.button
         while not goodbettor:
             self.lastbettor = self.nextactiveseat(self.lastbettor)
             if self.players[self.lastbettor].allin:
-                continue
+        	continue
             else:
-                goodbettor = True
+        	goodbettor = True
         
         self.next2act = self.lastbettor
-
-
+        
+        
         self.run(True)
-
+        
     def flipcards(self):
         log.logger.debug('Tourney.flipcards()')
-
+        
         buf = ''
         if self.round == Tourney.PREFLOP:
             buf += 'Flop : '
             for i in xrange(3):
-	        buf += self.board[i].face(self.color) + ' '
+        	buf += self.board[i].face(self.color) + ' '
             self.potsize[Tourney.FLOP-1] = self.pot
             self.nplyin[Tourney.FLOP-1] = self.nactive()
         elif self.round == Tourney.FLOP:
             buf += 'Turn : '
-	    buf += self.board[3].face(self.color) + ' '    
+            buf += self.board[3].face(self.color) + ' '    
             self.potsize[Tourney.TURN-1] = self.pot
             self.nplyin[Tourney.TURN-1] = self.nactive()
         elif self.round == Tourney.TURN:
@@ -1861,32 +1874,32 @@ e' % (anick,))
             self.potsize[Tourney.RIVER-1] = self.pot
             self.nplyin[Tourney.RIVER-1] = self.nactive()
         self.round += 1
-
+        
         self.pubout('Board:      %s' % self.printboard(self.round, self.color))
-
+        
         # strip color codes
         buf = buf.replace("01,00", '')
         buf = buf.replace("02,00", '')
         buf = buf.replace("03,00", '')
         buf = buf.replace("04,00", '')
         buf = buf.replace("", '')
-
+        
         log.logger.info('%s' % buf)
-
+        
     def flipout(self):
         log.logger.debug('Tourney.flipout()')
         
         while self.round < Tourney.RIVER:
             self.flipcards()
-
+        
     def begin(self):
         log.logger.debug('Tourney.begin()')
         
         from random import shuffle
-
+        
         for p in  self.players:
             log.logger.debug('Tourney.begin:%s' % p.nick)
-
+        
         shuffle(self.players)
         
         playernums = ""
@@ -1896,13 +1909,13 @@ e' % (anick,))
         for p in self.players:
             log.logger.debug('Tourney.begin:%s' % p.nick)
             p.bankroll = self.bankroll
-
+        
             # build strings for SQL query
             playernums += "player%d," % (playernum,)
             playernum += 1
             playerconv += "%s,"
             nicklist += "'%s'," % (p.nick,)
-                    
+        	    
         playernums = playernums.rstrip(',')
         playerconv = playerconv.rstrip(',')
         nicklist = nicklist.rstrip(',')
@@ -1911,10 +1924,10 @@ e' % (anick,))
         self.button = len(self.players) - 1
         self.sb = 0
         self.bb = 1
-
+        
         self.handnum = 0
         self.timestamp = self.dt.now()
-
+        
         # Grab last tourney number from database
         try:
             db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
@@ -1922,14 +1935,14 @@ e' % (anick,))
             log.logger.error("Can't talk to database - exiting\n", msg)
             self.pubout("Can't talk to the user database - panicing!")
             sys.exit(1)
-
+        
         c = db.cursor()
-
+        
         # Record new tourney
-        query = "INSERT INTO tournies (timestamp, channel, numplayers, %s) VALUES (%%d, %%s, %%d, %s)" % (playernums, playerconv)
-
+        query = "INSERT INTO tournies (timestamp, channel, numplayers, %s) VALUES (%%f, %%s, %%d, %s)" % (playernums, playerconv)
+        
 	log.logger.debug('query:%s' % (query,))
-	self.tourneytstamp = int(time.time())
+	self.tourneytstamp = time.time()
         data = (self.tourneytstamp, "'tourney'", len(self.players)) + tuple(nicklist.split(','))
 
 	log.logger.debug('data:%s' % (data,))
@@ -2033,14 +2046,6 @@ e' % (anick,))
         for n in xrange(52 - ndealt):
             faces.append(self.deck.nextcard().face())
 
-        oldstamp = self.dbstamp
-        self.dbstamp = int(time.time())
-        if self.dbstamp == oldstamp:
-            log.logger.debug("Tourney timestamp collision.  Sleeping (%d)" %\
-                             (self.dbstamp,))
-            time.sleep(1)
-            self.dbstamp = int(time.time())
-        
         #record deck
         try:
             db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
@@ -2055,7 +2060,7 @@ e' % (anick,))
         c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20,
         c21, c22, c23, c24, c25, c26, c27, c28, c29, c30, c31, c32, c33, c34,
         c35, c36, c37, c38, c39, c40, c41, c42, c43, c44, c45, c46, c47, c48,
-        c49, c50, c51, c52) VALUES (%d, '%s', '%2s','%2s','%2s','%2s','%2s',
+        c49, c50, c51, c52) VALUES (%f, '%s', '%2s','%2s','%2s','%2s','%2s',
         '%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s',
         '%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s',
         '%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s',

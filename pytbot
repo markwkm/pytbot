@@ -81,6 +81,10 @@ class TBot(irc.IRCClient):
             sys.exit(1)
             
         self.nickname = conf.get('IRC', 'nick')
+        self.idpass = conf.get('IRC', 'idpass')
+        self.idnick = conf.get('IRC', 'idnick')
+        self.opernick = conf.get('IRC', 'opernick')
+        self.operpass = conf.get('IRC', 'operpass')
         self.versionName = conf.get('version', 'name')
         self.versionNum = conf.get('version', 'number')
         self.versionEnv = sys.platform
@@ -114,6 +118,9 @@ class TBot(irc.IRCClient):
         
         log.logger.info('[I have joined %s]' % (channel,))
         self.channel = channel
+
+	self.sendLine('OPER %s %s' % (self.opernick, self.operpass))
+	self.privout('%s' % (self.idnick,), 'identify %s' % (self.idpass,))
 
     def noticed(self, user, channel, msg):
         """This will get called when the bot receives a NOTICE."""
@@ -153,7 +160,8 @@ class TBot(irc.IRCClient):
                 self.tourney.incmd(cmd)
 
         else:
-            log.logger.debug('No command in message:%s' % msg)
+            #log.logger.debug('No command in message:%s' % msg)
+            pass
         
     def action(self, user, channel, msg):
         """This will get called when the bot sees someone do an action."""

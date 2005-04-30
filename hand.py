@@ -35,7 +35,7 @@ class Hand:
                 TYPE_FH:'Full House', TYPE_4K:'Four of a Kind',\
                 TYPE_SF:'Straight Flush'}
     def __init__(self):
-        log.logger.debug('Hand.__init__()')
+        #log.logger.debug('Hand.__init__()')
 
         self.cards = []
         self.flushcard = None
@@ -46,7 +46,7 @@ class Hand:
         self.straighthi = 0
         self.type = Hand.TYPE_NP
     def __cmp__(self, other):
-        log.logger.debug('Hand.__cmp__()')
+        #log.logger.debug('Hand.__cmp__()')
 
         result = 0
 
@@ -75,7 +75,7 @@ class Hand:
 
         return result
     def __str__(self):
-        log.logger.debug('Hand.__str__()')
+        #log.logger.debug('Hand.__str__()')
 
         buf = ''
         buf += '[Hand:'
@@ -85,17 +85,17 @@ class Hand:
         buf += ']:Type=%d(%s)' % (self.type, Hand.TYPE_STR[self.type])
         return buf
     def addcard(self, acard):
-        log.logger.debug('Hand.addcard()')
+        #log.logger.debug('Hand.addcard()')
 
         self.cards.append(acard)
 
     def card(self, card):
-        log.logger.debug('Hand.card()')
+        #log.logger.debug('Hand.card()')
 
         return self.cards[card]
 
     def checkkicker(self, other):
-        log.logger.debug('Hand.checkkicker()')
+        #log.logger.debug('Hand.checkkicker()')
 
         result = 0
 
@@ -103,11 +103,11 @@ class Hand:
         other.prockickers()
 
         #DEBUG
-        #if len(self.kickers) > 7:
-        #    log.logger.critical('Hand.checkkicker:Too many kickers in self')
-        #if len(other.kickers) > 7:
-        #    log.logger.critical('Hand.checkkicker:Too many kickers in other')
-        #log.logger.debug('Self:')
+        if len(self.kickers) > 7:
+            log.logger.critical('Hand.checkkicker:Too many kickers in self')
+        if len(other.kickers) > 7:
+            log.logger.critical('Hand.checkkicker:Too many kickers in other')
+        log.logger.debug('Self:')
         #for c in self.kickers:
         #    log.logger.debug('     %s' % c.face())
         #log.logger.debug('Other:')
@@ -140,13 +140,13 @@ class Hand:
         return result
             
     def muck(self):
-        log.logger.debug('Hand.muck()')
+        #log.logger.debug('Hand.muck()')
 
         self.cards = []
         self.type = Hand.TYPE_NP
 
     def prockickers(self):
-        log.logger.debug('Hand.prockickers()')
+        #log.logger.debug('Hand.prockickers()')
 
         self.kickers = []
 
@@ -167,7 +167,7 @@ class Hand:
         self.kickers.reverse()
 
     def __isstraightflush(self):
-        log.logger.debug('Hand.__isstraightflush()')
+        #log.logger.debug('Hand.__isstraightflush()')
         
         hist = []
         result = 0
@@ -205,7 +205,7 @@ class Hand:
         return result
 
     def __isstraight(self, rhist):
-        log.logger.debug('Hand.__isstraight()')
+        #log.logger.debug('Hand.__isstraight()')
 
         hist = []
         rank = 0
@@ -249,7 +249,7 @@ class Hand:
         return result
 
     def evaluate(self):
-        log.logger.debug('Hand.evaluate()')
+        #log.logger.debug('Hand.evaluate()')
 
         rhist = [0,0,0,0,0,0,0,0,0,0,0,0,0]
         shist = [0,0,0,0]
@@ -414,7 +414,7 @@ class Hand:
         return self.type
 
     def showhole(self, color = False):
-        log.logger.debug('Hand.showhole()')
+        #log.logger.debug('Hand.showhole()')
 
         if len(self.cards) >= 2:
             return '%2s %2s' % (self.cards[0].face(color), self.cards[1].face(color))
@@ -422,7 +422,7 @@ class Hand:
             return ''
 
     def rankorderstr(self):
-        log.logger.debug('Hand.rankorderstr()')
+        #log.logger.debug('Hand.rankorderstr()')
 
         buf = '('
 
@@ -491,6 +491,108 @@ class Hand:
 
         return buf
 
+    def handtest(self):
+
+        from deck import Deck
+        import time
+
+        handhist=[0,0,0,0,0,0,0,0,0]
+
+        t1 = 0
+        t2 = 0
+        td = 0
+        ndecks = 0
+        chunksize = 1000
+        x = 0
+        y = 0
+        first = True
+        for x in xrange(1000):
+
+            if not x % chunksize:
+
+                y = 0
+
+                if not first:
+                    t2 = time.time()
+                else:
+                    first = False
+                ndecks += chunksize
+                td += t2 - t1
+                decks = []
+                for d in range(chunksize):
+                    decks.append(Deck())
+                    decks[d].shuffle()
+            
+                t1 = time.time()
+                
+            atype = Hand.TYPE_NP
+            foo = Hand()
+            for card in xrange(7):
+                foo.addcard(decks[y].nextcard())
+
+            handhist[foo.evaluate()] += 1
+
+            y += 1
+
+
+        # Display hand statistics
+        count = 0
+        for atype in handhist:
+            count += atype
+
+        TNHC = 23294460.0
+        TN1P = 58627800.0
+        TN2P = 31433400.0
+        TN3K =  6461620.0
+        TNST =  6180020.0
+        TNFL =  4047644.0
+        TNFH =  3473184.0
+        TN4K =   224848.0
+        TNSF =    41584.0
+        TNH = 133784560.0
+
+        factor = count / TNH
+
+        expected = factor * TNHC
+        error = float(handhist[Hand.TYPE_NP] - expected)/expected * 100
+        print '%20s: %7d (%5.0f) %+.2f%%' % ('No Pair', handhist[Hand.TYPE_NP],                                              expected, error)
+        
+        expected = factor * TN1P
+        error = float(handhist[Hand.TYPE_1P] - expected)/expected * 100
+        print '%20s: %7d (%5.0f) %+.2f%%' % ('One Pair',
+                                              handhist[Hand.TYPE_1P],expected,error)
+        expected = factor * TN2P
+        error = float(handhist[Hand.TYPE_2P] - expected)/expected * 100
+        print '%20s: %7d (%5.0f) %+.02f%%' % ('Two Pair',
+                                              handhist[Hand.TYPE_2P],expected,error)
+        expected = factor * TN3K
+        error = float(handhist[Hand.TYPE_3K] - expected)/expected * 100
+        print '%20s: %7d (%5.0f) %+.02f%%' % ('Three of a Kind',
+                                              handhist[Hand.TYPE_3K],expected,error)
+        expected = factor * TNST
+        error = float(handhist[Hand.TYPE_ST] - expected)/expected * 100
+        print '%20s: %7d (%5.0f) %+.02f%%' % ('Straight',
+                                              handhist[Hand.TYPE_ST],expected,error)
+        expected = factor * TNFL
+        error = float(handhist[Hand.TYPE_FL] - expected)/expected * 100
+        print '%20s: %7d (%5.0f) %+.02f%%' % ('Flush',
+                                              handhist[Hand.TYPE_FL],expected,error)
+        expected = factor * TNFH
+        error = float(handhist[Hand.TYPE_FH] - expected)/expected * 100
+        print '%20s: %7d (%5.0f) %+.02f%%' % ('Full House',
+                                              handhist[Hand.TYPE_FH],expected,error)
+        expected = factor * TN4K
+        error = float(handhist[Hand.TYPE_4K] - expected)/expected * 100
+        print '%20s: %7d (%5.0f) %+.02f%%' % ('Four of a Kind',
+                                              handhist[Hand.TYPE_4K],expected,error)
+        expected = factor * TNSF
+        error = float(handhist[Hand.TYPE_SF] - expected)/expected * 100
+        print '%20s: %7d (%5.0f) %+.02f%%' % ('Straight Flush',
+                                              handhist[Hand.TYPE_SF],expected,error)
+        #print '%28d total hands' % count
+
+        print "processed %d hands in %d seconds" % (sum, td)
+
 if __name__ == '__main__':
 
     #######  2  3  4  5  6  7  8  9  T  J  Q  K  A
@@ -500,178 +602,82 @@ if __name__ == '__main__':
     #HEART# 26 27 28 29 30 31 32 33 34 35 36 37 38
     #SPADE# 39 40 41 42 43 44 45 46 47 48 49 50 51
 
-    import os
-    import sys
-    from perms import perms
-
-    try:
-        os.chdir('handtest')
-    except:
-       print "Can't change to test dir"
-       sys.exit(1)
-       
     handhist=[0,0,0,0,0,0,0,0,0]
-    h = Hand()
-
+    foo = Hand()
     count = 0
-    restart = True
-    c1 = 0
-    while c1 < 46:
-        c2 = c1 + 1
-        while c2 < 47:
-            c3 = c2 + 1
-            while c3 < 48:
-                c4 = c3 + 1
-                while c4 < 49:
-                    c5 = c4 + 1
-                    while c5 < 50:
-                        c6 = c5 + 1
-                        while c6 < 51:
-                            c7 = c6 + 1
-                            while c7 < 52:
-                                
-                                # Recover from save
-                                if restart:
-                                    try:
-                                        save = file('status', 'r')
-                                        c1 = int(save.readline())
-                                        c2 = int(save.readline())
-                                        c3 = int(save.readline())
-                                        c4 = int(save.readline())
-                                        c5 = int(save.readline())
-                                        c6 = int(save.readline())
-                                        c7 = int(save.readline())
-                                        buckets = save.readline()
-                                        save.close()
-                                        e = enumerate(buckets.split())
-                                        for n, v in e:
-                                            handhist[n] = int(v)
-                                                    
-                                    except Exception, msg:
-                                        print msg
-                                        print "Can't load save file.  Assuming fresh run."
-                                    restart = False
-                
-                                print c1, c2, c3, c4, c5, c6, c7
-                                
-                                save = file('status', 'w')
-                                save.write('%d\n' % (c1,))
-                                save.write('%d\n' % (c2,))
-                                save.write('%d\n' % (c3,))
-                                save.write('%d\n' % (c4,))
-                                save.write('%d\n' % (c5,))
-                                save.write('%d\n' % (c6,))
-                                save.write('%d\n' % (c7,))
-                                for bucket in handhist:
-                                    save.write('%d ' % (bucket,))
-                                save.write('\n')
-                                save.close()
-                                
-                                count += 1;
-                                cl = [card.Card(c1),
-                                      card.Card(c2),
-                                      card.Card(c3),
-                                      card.Card(c4),
-                                      card.Card(c5),
-                                      card.Card(c6),
-                                      card.Card(c7)
-                                      ]
+    for c1 in xrange(0, 46):
+        for c2 in xrange(c1 + 1, 47):
+            for c3 in xrange(c2 + 1, 48):
+                for c4 in xrange(c3 + 1, 49):
+                    for c5 in xrange(c4 + 1, 50):
+                        for c6 in xrange(c5 + 1, 51):
+                            for c7 in xrange(c6 + 1, 52):
+                                foo.addcard(card.Card(c1))
+                                foo.addcard(card.Card(c2))
+                                foo.addcard(card.Card(c3))
+                                foo.addcard(card.Card(c4))
+                                foo.addcard(card.Card(c5))
+                                foo.addcard(card.Card(c6))
+                                foo.addcard(card.Card(c7))
 
-                                #print 'current directory:', os.getcwd()
+                                handhist[foo.evaluate()] += 1
 
-                                print 'permuting',
-                                for c in cl:
-                                    print c.face(),
-                                print
-                                    
-                                for c in xrange(6):
-                                    try:
-                                        dname = cl[c].face()
-                                        #print 'entering', dname
-                                        os.chdir(dname)
-                                    except Exception, msg:
-                                        print msg
-                                        try:
-                                            print 'creating dir', dname
-                                            os.mkdir(dname)
-                                            #print 'entering', dname
-                                            os.chdir(dname)
-                                        except Exception, msg:
-                                            print msg
-                                            sys.exit(1)
-                                            
+                                foo.muck()
 
-                                try:
-                                    hf = file(cl[6].face(), 'w')
-                                except Exception, msg:
-                                    print "Can't create file", cl[6].face()
-                                    sys.exit(1)
-                                
-                                e = enumerate(perms)
-                                for n, p in e:
-                                    h.cards = [cl[p[0]],
-                                               cl[p[1]],
-                                               cl[p[2]],
-                                               cl[p[3]],
-                                               cl[p[4]],
-                                               cl[p[5]],
-                                               cl[p[6]]
-                                               ]
-                                    
-                                    htype = h.evaluate()
+                                count += 1
+                                if not count % 1000:
+                                    print count, ' hands counted'
 
-                                    if n == 0:
-                                        hf.write(Hand.TYPE_STR[htype] + '\n')
-                                        proto = htype
-                                        #print 'prototype:%s' % (Hand.TYPE_STR[proto],)
-                                        #print h
-                                        hf.close()
+                                    sum = 0
+                                    for bucket in handhist:
+                                        sum += bucket
+                                    print sum, ' hands in histogram'
 
-                
-                                    elif htype != proto:
-                                        print "Different type in permutation %d of hand %d" %\
-                                              (n, count)
-                                        sys.exit(2)
-                                        
-                                        
-                                            
-                                    handhist[htype] += 1
-                                    #print n, h
+                                    TNHC = 23294460.0
+                                    TN1P = 58627800.0
+                                    TN2P = 31433400.0
+                                    TN3K =  6461620.0
+                                    TNST =  6180020.0
+                                    TNFL =  4047644.0
+                                    TNFH =  3473184.0
+                                    TN4K =   224848.0
+                                    TNSF =    41584.0
+                                    TNH = 133784560.0
 
-                                print Hand.TYPE_STR[htype]
-                                print '-----------------------------------'
+                                    print "%20s: %12d" % ('Straight Flush', handhist[Hand.TYPE_SF])
+                                    print "%20s: %12d" % ('Four of a Kind', handhist[Hand.TYPE_4K])
+                                    print "%20s: %12d" % ('Full House', handhist[Hand.TYPE_FH])
+                                    print "%20s: %12d" % ('Flush', handhist[Hand.TYPE_FL])
+                                    print "%20s: %12d" % ('Straight', handhist[Hand.TYPE_ST])
+                                    print "%20s: %12d" % ('Three of a Kind', handhist[Hand.TYPE_3K])
+                                    print "%20s: %12d" % ('Two Pair', handhist[Hand.TYPE_2P])
+                                    print "%20s: %12d" % ('One Pair', handhist[Hand.TYPE_1P])
+                                    print "%20s: %12d" % ('No Pair', handhist[Hand.TYPE_NP])        
 
-                                #print 'leaving', os.getcwd()
-                                os.chdir(os.pardir)
-                                #print 'leaving', os.getcwd()
-                                os.chdir(os.pardir)
-                                #print 'leaving', os.getcwd()
-                                os.chdir(os.pardir)
-                                #print 'leaving', os.getcwd()
-                                os.chdir(os.pardir)
-                                #print 'leaving', os.getcwd()
-                                os.chdir(os.pardir)
-                                #print 'leaving', os.getcwd()
-                                os.chdir(os.pardir)
-                                
-                                hsum = 0
-                                for bucket in handhist:
-                                    print '%15s:%15d' %\
-                                          ( Hand.TYPE_STR[handhist.index(bucket)],bucket)
-                                    hsum += bucket
-                                fraction = ((hsum/5040)/133784560.0) * 100
-                                print '%d/133784560 (%.2f%%) evaluated' %\
-                                      (hsum/5040, fraction)
+    print count, ' hands counted'
 
-                                h.muck()
+    sum = 0
+    for bucket in handhist:
+        sum += bucket
+    print sum, ' hands in histogram'
+        
+    TNHC = 23294460.0
+    TN1P = 58627800.0
+    TN2P = 31433400.0
+    TN3K =  6461620.0
+    TNST =  6180020.0
+    TNFL =  4047644.0
+    TNFH =  3473184.0
+    TN4K =   224848.0
+    TNSF =    41584.0
+    TNH = 133784560.0
 
-                                c7 += 1
-                            c6 += 1
-                        c5 += 1
-                    c4 += 1
-                c3 += 1
-            c2 += 1
-        c1 += 1
-                            
-
-
+    print "%20s: %12d" % ('Straight Flush', handhist[Hand.TYPE_SF])
+    print "%20s: %12d" % ('Four of a Kind', handhist[Hand.TYPE_4K])
+    print "%20s: %12d" % ('Full House', handhist[Hand.TYPE_FH])
+    print "%20s: %12d" % ('Flush', handhist[Hand.TYPE_FL])
+    print "%20s: %12d" % ('Straight', handhist[Hand.TYPE_ST])
+    print "%20s: %12d" % ('Three of a Kind', handhist[Hand.TYPE_3K])
+    print "%20s: %12d" % ('Two Pair', handhist[Hand.TYPE_2P])
+    print "%20s: %12d" % ('One Pair', handhist[Hand.TYPE_1P])
+    print "%20s: %12d" % ('No Pair', handhist[Hand.TYPE_NP])        

@@ -22,7 +22,7 @@ hdlr = logging.FileHandler('pytbot.log')
 formatter = logging.Formatter('%(asctime)s:%(name)s[%(process)d] %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 chatlog = logging.getLogger('chat')
 chathdlr = logging.FileHandler('chat.log')
@@ -30,3 +30,4 @@ cformat = logging.Formatter('%(message)s')
 chathdlr.setFormatter(cformat)
 chatlog.addHandler(chathdlr)
 chatlog.setLevel(logging.INFO)
+

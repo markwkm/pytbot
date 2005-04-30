@@ -17,7 +17,7 @@
 import log
 
 def ranksym(rank):
-    log.logger.debug('Card.ranksym()')
+    #log.logger.debug('Card.ranksym()')
     return Card.facerank[rank]
 
 class Card:
@@ -32,53 +32,59 @@ class Card:
                 '9', 'T', 'J', 'Q', 'K', 'A')
     facesuit = ('c', 'd', 'h', 's')
     def __init__(self, cardnum=0):
-        log.logger.debug('Card.__init__()')
+        #log.logger.debug('Card.__init__()')
         self.cardnum = cardnum
 
     def __str__(self):
-        log.logger.debug('Card.__str__()')
+        #log.logger.debug('Card.__str__()')
         return '[Card:%d:%s:%s]' % (self.cardnum, self.face(), self.cardname())
 
     def __cmp__(self, other):
-        log.logger.debug('Card.__cmp__()')
+        #log.logger.debug('Card.__cmp__()')
         return cmp(self.rank(), other.rank())
 
     def rank(self):
-        log.logger.debug('Card.rank()')
+        #log.logger.debug('Card.rank()')
         return self.cardnum % 13
 
     def rankname(self):
-        log.logger.debug('Card.rankname()')
+        #log.logger.debug('Card.rankname()')
         return self.ranks[self.rank()]
 
     def suit(self):
-        log.logger.debug('Card.suit()')
+        #log.logger.debug('Card.suit()')
         return self.cardnum / 13
 
     def suitname(self):
-        log.logger.debug('Card.suitname()')
+        #log.logger.debug('Card.suitname()')
         return self.suits[self.suit()]
 
     def cardname(self):
-        log.logger.debug('Card.cardname()')
+        #log.logger.debug('Card.cardname()')
         return self.rankname() + ' of ' + self.suitname()
 
     def face(self, color = False):
-        log.logger.debug('Card.face()')
+        #log.logger.debug('Card.face()')
 
         r = Card.facerank[self.rank()]
         s = Card.facesuit[self.suit()]
         f = r + s
 
+	#color = False
+
         if color:
             if s == 'c':
                 f = '03,00%c%c' % (r, s)
+                #f = '\033[47m\033[32m%c%c\033[0;0m' % (r, s)
             elif s == 'd':
                 f = '02,00%c%c' % (r, s)
+                #f = '\033[47m\033[34m%c%c\033[0;0m' % (r, s)
             elif s == 'h':
                 f = '04,00%c%c' % (r, s)
+                #f = '\033[47m\033[31m%c%c\033[0;0m' % (r, s)
             elif s == 's':
                 f = '01,00%c%c' % (r, s)
+                #f = '\033[47m\033[30m%c%c\033[0;0m' % (r, s)
                          
         return f
 

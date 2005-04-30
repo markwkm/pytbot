@@ -76,7 +76,7 @@ class Deck:
         of randomness.
         '''
 
-        log.logger.debug('Deck.rand4()')
+        #log.logger.debug('Deck.rand4()')
 
         rf = open('/dev/urandom', 'r')
 
@@ -114,7 +114,7 @@ class Deck:
         return byte
 
     def nextcard(self):
-        log.logger.debug('Deck.nextcard()')
+        #log.logger.debug('Deck.nextcard()')
 
         if self.topcard == 51:
             raise Deck.error, 'no cards left in deck'
