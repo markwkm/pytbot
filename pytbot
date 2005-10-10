@@ -135,7 +135,7 @@ class TBot(irc.IRCClient):
         ###print "<%s>[%s] %s" % (user, channel, msg)
 
         # Private message to me
-        if channel == self.nickname:
+        if channel.upper() == self.nickname.upper():
             log.chatlog.info('[PRV<-]<%s> %s' % (user, msg))
 
         # Public message
