@@ -628,10 +628,10 @@ if __name__ == '__main__':
                                 if not count % 1000:
                                     print count, ' hands counted'
 
-                                    sum = 0
+                                    asum = 0
                                     for bucket in handhist:
-                                        sum += bucket
-                                    print sum, ' hands in histogram'
+                                        asum += bucket
+                                    print asum, ' hands in histogram'
 
                                     TNHC = 23294460.0
                                     TN1P = 58627800.0
@@ -656,10 +656,10 @@ if __name__ == '__main__':
 
     print count, ' hands counted'
 
-    sum = 0
+    asum = 0
     for bucket in handhist:
-        sum += bucket
-    print sum, ' hands in histogram'
+        asum += bucket
+    print asum, ' hands in histogram'
         
     TNHC = 23294460.0
     TN1P = 58627800.0

@@ -89,12 +89,7 @@ class TBot(irc.IRCClient):
         self.versionNum = conf.get('version', 'number')
         self.versionEnv = sys.platform
 
-        db = conf.get('database', 'db')
-        dbu = conf.get('database', 'user')
-        dbp = conf.get('database', 'passwd')
-
-        self.tourney = Tourney(self.pubout, self.privout, self.noteout,
-                               db, dbu, dbp)
+        self.tourney = Tourney(self.pubout, self.privout, self.noteout)
 
     #### connection callbacks
     def connectionMade(self):

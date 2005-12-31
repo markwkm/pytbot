@@ -18,78 +18,10 @@
 ##############################################################################
 Please send any questions or comments to protering@users.sourceforge.net.
 
-Modify pytbot.ini to point to the database and IRC server you want to
-use.
+Modify pytbot.ini to point to the  IRC server you want to use.
 
 All dealer commands are of the form 'p cmd [arg1 [arg2]]'.  'p help'
 gives a list of most commands.  ***Please note that many IRC servers
 using flood protection will kick pytbot if users ask for help (or even
 if the game is moving quickly!).  It works best if you can get an
 admin of the server to turn off flood protection for the bot.***
-
-
-Here are the SQL queries used to create the tables pytbot expects to see:
-
-create table action (timestamp bigint unsigned not null, player
-varchar(16) not null, channel varchar(20) not null, position smallint
-not null, preflop varchar(10), flop varchar(10), turn varchar(10),
-river varchar(10), bankroll int unsigned, action int unsigned default
-0, winnings int unsigned default 0, cards varchar(11), primary key
-(timestamp, player));
-
-create table tournies (timestamp bigint unsigned unique not null,
-channel varchar(20) not null, numplayers smallint unsigned not null,
-player1 varchar(16), player2 varchar(16), player3 varchar(16), player4
-varchar(16), player5 varchar(16), player6 varchar(16), player7
-varchar(16), player8 varchar(16), player9 varchar(16), player10
-varchar(16), player11 varchar(16), player12 varchar(16), player13
-varchar(16), player14 varchar(16), player15 varchar(16), player16
-varchar(16), player17 varchar(16), player18 varchar(16), player19
-varchar(16), player20 varchar(16), player21 varchar(16), player22
-varchar(16), player23 varchar(16), primary key (timestamp, channel));
-
-create table hands (timestamp bigint unsigned unique not null
-references decks.timestamp, channel varchar(16) not null, tourney
-integer unsigned, game integer unsigned not null, plflop smallint
-unsigned default 0, potflop int unsigned default 0,plturn smallint
-unsigned default 0, potturn int unsigned default 0,plriver smallint
-unsigned default 0, potriver int unsigned default 0,plshow smallint
-unsigned default 0, potshow int unsigned default 0, board varchar(13),
-primary key (timestamp, channel));
-
-create table decks (timestamp bigint unsigned unique not null, channel
-varchar(20) not null, c1 char(2) not null, c2 char(2) not null, c3
-char(2) not null, c4 char(2) not null, c5 char(2) not null, c6 char(2)
-not null, c7 char(2) not null, c8 char(2) not null, c9 char(2) not
-null, c10 char(2) not null, c11 char(2) not null, c12 char(2) not
-null, c13 char(2) not null, c14 char(2) not null, c15 char(2) not
-null, c16 char(2) not null, c17 char(2) not null, c18 char(2) not
-null, c19 char(2) not null, c20 char(2) not null, c21 char(2) not
-null, c22 char(2) not null, c23 char(2) not null, c24 char(2) not
-null, c25 char(2) not null, c26 char(2) not null, c27 char(2) not
-null, c28 char(2) not null, c29 char(2) not null, c30 char(2) not
-null, c31 char(2) not null, c32 char(2) not null, c33 char(2) not
-null, c34 char(2) not null, c35 char(2) not null, c36 char(2) not
-null, c37 char(2) not null, c38 char(2) not null, c39 char(2) not
-null, c40 char(2) not null, c41 char(2) not null, c42 char(2) not
-null, c43 char(2) not null, c44 char(2) not null, c45 char(2) not
-null, c46 char(2) not null, c47 char(2) not null, c48 char(2) not
-null, c49 char(2) not null, c50 char(2) not null, c51 char(2) not
-null, c52 char(2) not null, PRIMARY KEY (timestamp, channel));
-
-create table roster (timestamp bigint unsigned unique not null primary
-key REFERENCES decks(timestamp), numplayers smallint unsigned not
-null, player1 varchar(16), player2 varchar(16), player3 varchar(16),
-player4 varchar(16), player5 varchar(16), player6 varchar(16), player7
-varchar(16), player8 varchar(16), player9 varchar(16), player10
-varchar(16), player11 varchar(16), player12 varchar(16), player13
-varchar(16), player14 varchar(16), player15 varchar(16), player16
-varchar(16), player17 varchar(16), player18 varchar(16), player19
-varchar(16), player20 varchar(16), player21 varchar(16), player22
-varchar(16), player23 varchar(16));
-
-create table player(nick varchar(9) unique not null primary key,
-password varchar(13) not null, bankroll int unsigned not null default
-1000, rebuys int unsigned not null default 0, created datetime not
-null);
-

@@ -18,10 +18,8 @@ import log
 import sys
 import time
 from string import letters, digits
-from crypt import crypt
 from datetime import datetime
 from random import choice
-import MySQLdb
 
 from command import Command
 from deck import Deck
@@ -36,16 +34,12 @@ class Tourney:
     nholecards = 2
     nboardcards = 5
 
-    def __init__(self, pubout=None, privout=None, noteout = None,
-                 dbname='BADNAME', dbuser='BADUSER', dbpw='BADPASS'):
+    def __init__(self, pubout=None, privout=None, noteout = None):
         log.logger.debug('Tourney.__init__()')
 
         self.pubout = pubout
         self.privout = privout
         self.noteout = noteout
-        self.dbname = dbname
-        self.dbuser = dbuser
-        self.dbpw = dbpw
         self.maxplayers = 23
         self.nstartplayers = 0
         self.players = []
@@ -89,39 +83,6 @@ class Tourney:
         self.nplyin = [0, 0, 0, 0]
         self.potsize = [0, 0, 0, 0]
 
-        # Make sure we can talk to the database
-        try:
-            db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
-        except Exception, msg:
-            print "Can't talk to database - exiting\n", msg
-            sys.exit(1)
-
-        db.close()
-            
-    def replacepasswd(self, name, newpswd):
-        log.logger.debug('Tourney.replacepasswd()')
-
-        log.logger.info('Tourney.replacepasswd: replacing password for %s:(%s)' % (name, newpswd))
-
-        salt = choice(letters+digits) + choice(letters+digits)
-        cpswd = crypt(newpswd, salt)
-
-        try:
-            db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
-        except Exception, msg:
-            log.logger.error("Can't talk to database - exiting\n", msg)
-            self.pubout("Can't talk to the user database - panicing!")
-            sys.exit(1)
-
-        c = db.cursor()
-
-        lines = c.execute("UPDATE player SET password='%s' where "
-                          "nick='%s'" % (cpswd, name))
-
-        db.commit()
-        c.close()
-        db.close()
-
     def incmd(self, cmd):
         log.logger.debug('Tourney.incmd()')
 
@@ -131,7 +92,7 @@ class Tourney:
         'RAISE', 'UNDO', 'JAM', 'POT']
         
         gamecmds = actions + ['ABORT', 'BACK', 'CARDS', 'COLOR', 'KICK',
-        'VACATION', 'REMIND', 'QUIT', 'PASSWORD', 'POSITION', 'STACK']
+        'VACATION', 'REMIND', 'QUIT', 'POSITION', 'STACK']
 
         setupcmds = ['DOUBLE', 'BANKROLL', 'BLIND', 'START']
         
@@ -151,11 +112,7 @@ class Tourney:
             self.noteout(pid, "You're not involved in this hand.  %s command ignored." % c)
 
         elif c in gamecmds and not self.playing:
-            if c == 'PASSWORD':
-                self.replacepasswd(pid, cmd.arg)
-                self.privout(pid, 'Password replaced with %s' % cmd.arg)
-
-            elif c == 'QUIT':
+            if c == 'QUIT':
                 msg = '%s has quit.  We now have %d player' %\
                       (pid, len(self.players) - 1)
                 self.players.remove(p)
@@ -165,10 +122,6 @@ class Tourney:
                     msg += 's '
                 msg += 'in the tournament.'
                 self.pubout(msg)
-
-                #####if len(self.waiters) > 0:
-                #####    (nick, pswd) = self.waiters.pop(0)
-                #####    self.joingame(nick, pswd)
 
             else:
                 self.privout(pid, 'There is currently no game.  %s command ignored.' % c)
@@ -183,16 +136,14 @@ class Tourney:
             if self.ingame(pid):
                 self.privout(pid, "You're already in the game.")
             elif self.playing:
-                #self.privout(pid, "Sorry, there's a tournament already in progress.  Use 'wait <passwd>' to get on the waiting list for the next tournament.")
                 self.privout(pid, "Sorry, there's a tournament already in progress.")
             else:
                 if len(self.players) == self.maxplayers:
-                   #self.privout(pid, "Sorry, the table is full.  Use 'wait <passwd>' to get on the waiting list for the next tournament.")
                    self.privout(pid, "Sorry, the table is full.")
 
                 # valid JOIN command
                 else:
-                    self.joingame(pid, cmd.arg)
+                    self.joingame(pid)
         
         elif c == 'STATUS':
             self.prettyprint(pid)
@@ -341,7 +292,6 @@ class Tourney:
                 self.privout(pid, "You've already quit!")                
             else:
                 self.privout(pid, "Okay, you're gone!")
-                p.activity[self.round] += 'Q'
                 p.cmd.cmd = 'FOLD'
                 p.cmd.arg = ''
                 p.quit = True
@@ -370,66 +320,19 @@ class Tourney:
         if self.playing and run:
             self.run()
 
-    def joingame(self, nick, pswd):
+    def joingame(self, nick):
         log.logger.debug('Tourney.joingame()')
 
-        goodjoin = True
-
-        # Look up nick:pswd in database
-        try:
-            db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
-        except Exception, msg:
-            log.logger.error("Can't talk to database - exiting\n", msg)
-            self.pubout("Can't talk to the user database - panicing!")
-            sys.exit(1)
-
-        c = db.cursor()
-
-        lines = c.execute("SELECT nick,password from player where "
-                          "nick='%s'" % (nick,))
-
-        # Add new players to player database
-        if lines == 0:
-            log.logger.debug("Adding nick %s (%s) to database" % (nick, pswd))
-            
-            # encrypt password for storage
-            salt = choice(letters+digits) + choice(letters+digits)
-            cpswd = crypt(pswd, salt)
-
-            c.execute("INSERT into player (nick, password, bankroll) "
-                      "VALUES ('%s', '%s', 1000)" % (nick, cpswd))
-
-        # Check for valid password
+        self.players.append(Player(nick, nick))
+        self.noteout(nick, 'Welcome to the game.')
+        msg = ('%s has joined the game.  We now have %d player' %\
+               (nick, len(self.players)))
+        if len(self.players) > 1:
+            msg += 's '
         else:
-            (anick, apass) = c.fetchone()
-            if lines > 1:
-                log.logger.warning("Found more than one entry in the player database for %s" % (anick,))
-
-            log.logger.debug("Found nick %s (%s) in database" % (anick, apass))
-
-            if apass != crypt(pswd, apass[:2]):
-                if apass == '':
-                    log.logger.warning('%s has an empty password in the databas\
-e' % (anick,))
-                    self.privout(nick, "Your password is empty.  Please use the PASSWORD command to change it.")
-                else:
-                    self.privout(nick, "Invalid password.  Please try joining again.")
-                    goodjoin = False
-
-        if goodjoin:
-            self.players.append(Player(nick, nick))
-            self.noteout(nick, 'Welcome to the game.')
-            msg = ('%s has joined the game.  We now have %d player' %\
-                   (nick, len(self.players)))
-            if len(self.players) > 1:
-                msg += 's '
-            else:
-                msg += ' '
+            msg += ' '
             msg += 'in the tournament.'
             self.pubout(msg)
-
-        c.close()
-        db.close()
     
     def run(self, newhand = False):
         log.logger.debug('Tourney.run()')
@@ -454,7 +357,6 @@ e' % (anick,))
             if p.cmd.cmd == 'FOLD':
 
                 if p.action >= self.curbet:
-                    p.activity[self.round] += 'k'
                     if p.vacation:
                         log.logger.info('Tourney.run:%s is on vacation and checks' % p.nick)
                     else:
@@ -467,8 +369,6 @@ e' % (anick,))
                     p.folded = True
                     p.cmd.cmd = 'NOOP'
                     nactive = self.nactive()
-                    if not 'Q' in p.activity[self.round]:
-                        p.activity[self.round] += 'f'
                     msg = '%s folds.  We now have %d player' %\
                           (p.nick, nactive)
                     if nactive > 1:
@@ -587,7 +487,6 @@ e' % (anick,))
                 p.cmd.cmd = 'NOOP'
 
                 if tocall == 0:
-                    p.activity[self.round] += 'k'
                     self.pubout('%s checks.' % p.nick)
                     log.logger.info('Tourney.run:%s checks' % p.nick)
                 else:
@@ -713,7 +612,6 @@ e' % (anick,))
 
             # All-in call
             else:
-                p.activity[self.round] += 'A'
                 self.pot += p.bankroll
                 p.action += p.bankroll
                 p.inplay += p.bankroll
@@ -733,7 +631,6 @@ e' % (anick,))
             # Normal call
             p.lastbet = self.curbet
             if tocall < p.bankroll:
-                p.activity[self.round] += 'c'
                 self.pot += tocall
                 p.action += tocall
                 p.inplay += tocall
@@ -745,7 +642,6 @@ e' % (anick,))
 
             # All-in call
             elif tocall >= p.bankroll:
-                p.activity[self.round] += 'A'
                 self.pot += p.bankroll
                 p.action += p.bankroll
                 p.inplay += p.bankroll
@@ -780,7 +676,6 @@ e' % (anick,))
 
         # All-in call
         if p.bankroll < tocall:
-            p.activity[self.round] += 'A'
             self.pot += p.bankroll
             p.action += p.bankroll
             p.inplay += p.bankroll
@@ -795,7 +690,6 @@ e' % (anick,))
             p.bankroll = 0
 
         else:
-            p.activity[self.round] += 'c'
             p.lastbet = self.curbet
             self.pot += tocall
             p.action += tocall
@@ -870,7 +764,6 @@ e' % (anick,))
                     self.curbet = p.action
 
                     self.minraise += p.bankroll - tocall
-                    p.activity[self.round] += 'A'
                     self.pubout('%s raises $%d and is all in.  Pot is now $%d.' % (p.nick, maxraise, self.pot))
                     log.logger.info('Tourney.RAISE: %s raises $%d and is all in' % (p.nick, maxraise))
 
@@ -917,11 +810,9 @@ e' % (anick,))
                     p.inplay += p.bankroll
                     p.lastbet = p.action
                     if self.curbet == 0:
-                        p.activity[self.round] += 'b'
                         self.pubout('%s bets $%d and is all in.  Pot is now $%d.' % (p.nick, p.bankroll, self.pot))
                         log.logger.info('Tourney.RAISE: %s bet $%d and is all in' % (p.nick, p.bankroll))
                     else:
-                        p.activity[self.round] += 'A'
                         self.pubout('%s raises $%d and is all in.  Pot is now $%d.' % (p.nick, p.bankroll - tocall, self.pot))
                         log.logger.info('Tourney.RAISE: %s raises $%d and is all in' % (p.nick, p.bankroll - tocall))
 
@@ -940,13 +831,11 @@ e' % (anick,))
                     p.lastbet = self.curbet + araise
                     p.bankroll -= chips
                     if self.curbet > 0:
-                        p.activity[self.round] += 'r'
                         self.pubout('%s raises $%d.  Pot is now $%d.' %\
                                     (p.nick, araise, self.pot))
                         log.logger.info('Tourney.RAISE:%s raises $%d' %\
                                         (p.nick, araise))
                     else:
-                        p.activity[self.round] += 'b'
                         log.logger.debug('Tourney.RAISE:chips = $%d' % chips)
                         self.pubout('%s bets $%d.  Pot is now $%d.' %\
                                     (p.nick, araise, self.pot))
@@ -1137,56 +1026,6 @@ e' % (anick,))
                 self.finishers.append(q.nick)
                 #self.players.remove(q)
 
-        #record Hand
-        try:
-            db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
-        except Exception, msg:
-            log.logger.error("Can't talk to database - exiting\n", msg)
-            self.pubout("Can't talk to the user database - panicing!")
-            sys.exit(1)
-
-        c = db.cursor()
-
-        query = ("INSERT INTO hands (timestamp, channel, tourney,\
-        game, plflop, potflop, plturn, potturn, plriver, potriver,\
-        plshow, potshow, board) VALUES (%f, 'tourney', %f, %d, %d, %d,\
-        %d, %d, %d, %d, %d, %d, '%s')") % (self.dbstamp, self.tourneytstamp,
-        self.handnum, self.nplyin[0], self.potsize[0], self.nplyin[1],
-        self.potsize[1], self.nplyin[2], self.potsize[2],
-        self.nplyin[3], self.potsize[3], self.printboard(self.round, False))
-        
-        c.execute(query)
-            
-        db.commit()
-        
-        #record player action
-        for p in self.players:
-            if p.activity[0]:
-        	activity = [None,None,None,None]
-        	a = 0
-        	for s in p.activity:
-        	    if s:
-        		activity[a] = s
-        	    else:
-        		activity[a] = ''
-        	    a += 1
-        	if showhole and not p.folded:
-        	    hole = p.hand.showhole(False)
-        	else:
-        	    hole = ''
-        	query = "INSERT INTO action VALUES (%f, '%s', 'tourney', %d, '%s', '%s', '%s', '%s', %d, %d, %d, '%s')" %\
-        		(self.dbstamp, p.nick, p.position, activity[0], activity[1],
-        		 activity[2], activity[3], p.oldbankroll, p.inplay, p.won,
-        		 hole)
-        
-        	log.logger.debug('query:%s' % (query,))
-        
-        	c.execute(query)
-        	db.commit()
-        	
-        c.close()
-        db.close()
-        
         if self.tourneyover():
             self.endtourney()
         
@@ -1335,39 +1174,6 @@ e' % (anick,))
         	self.pubout('The tourney is over.  %s wins!  Congratulations!' % plist[0].nick)
         	log.logger.info('Tourney.endtourney: Tourney over, %s wins' % plist[0].nick)
         
-            # Replace tourney DB entry with players in order of finish
-            try:
-        	db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
-            except Exception, msg:
-        	log.logger.error("Can't talk to database - exiting\n", msg)
-        	self.pubout("Can't talk to the user database - panicing!")
-        	sys.exit(1)
-        
-            c = db.cursor()
-        
-            c.execute("SELECT MAX(timestamp) from tournies where channel='tourney'")
-        
-            maxstamp = c.fetchone()[0]
-            if maxstamp:
-        	self.finishers.reverse()
-        	sets = ""
-        	playerconv = ""
-        	for n in xrange(len(self.finishers)):
-        	    sets += "player%d='%s'," % (n+1, self.finishers[n])
-        
-        	sets = sets.rstrip(',')
-        
-        	query = "UPDATE tournies SET %s WHERE timestamp like '%s%%'" %\
-        		(sets,maxstamp)
-        
-        	log.logger.info('query:%s' % (query,))
-        
-        	c.execute(query)
-        
-        	db.commit()
-            c.close()
-            db.close()
-        
         else:
             log.logger.info('Tourney.endtourney: Tourney aborted!')
         
@@ -1405,8 +1211,6 @@ e' % (anick,))
         
         if hasattr(self, 'sidepots'):
             delattr(self, 'sidepots')
-        
-        #FIXME: Start loading players from the waiting list here...
         
     def nlive(self):
         'Count how many unbusted players are at the table.'
@@ -1636,22 +1440,6 @@ e' % (anick,))
             data = (self.dbstamp, self.nlive()) + tuple(nicklist.split(','))
         	    
             log.logger.debug('data:%s' % (data,))
-        
-            #record roster
-            try:
-        	db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
-            except Exception, msg:
-        	log.logger.error("Can't talk to database - exiting\n", msg)
-        	self.pubout("Can't talk to the user database - panicing!")
-        	sys.exit(1)
-        
-            c = db.cursor()
-        
-            c.execute(query % data)
-            
-            db.commit()
-            c.close()
-            db.close()
         
             self.nplyin = [0, 0, 0, 0]
             self.potsize = [0, 0, 0, 0]
@@ -1928,31 +1716,6 @@ e' % (anick,))
         self.handnum = 0
         self.timestamp = self.dt.now()
         
-        # Grab last tourney number from database
-        try:
-            db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
-        except Exception, msg:
-            log.logger.error("Can't talk to database - exiting\n", msg)
-            self.pubout("Can't talk to the user database - panicing!")
-            sys.exit(1)
-        
-        c = db.cursor()
-        
-        # Record new tourney
-        query = "INSERT INTO tournies (timestamp, channel, numplayers, %s) VALUES (%%f, %%s, %%d, %s)" % (playernums, playerconv)
-        
-	log.logger.debug('query:%s' % (query,))
-	self.tourneytstamp = time.time()
-        data = (self.tourneytstamp, "'tourney'", len(self.players)) + tuple(nicklist.split(','))
-
-	log.logger.debug('data:%s' % (data,))
-
-        c.execute(query % data)
-
-        db.commit()
-        c.close()
-        db.close()
-
         log.logger.info('New Tourney:%s:%s' % (self.tourneytstamp, nicklist))
 
         self.newhand()
@@ -2021,7 +1784,6 @@ e' % (anick,))
     def deal(self):
         log.logger.debug('Tourney.deal()')
 
-        faces = []
         position = 1
         for n in xrange(Tourney.nholecards):
             for p in xrange(len(self.players)):
@@ -2030,60 +1792,13 @@ e' % (anick,))
                     acard = self.deck.nextcard()
                     player.hand.addcard(acard)
                     player.hand.seat = self.players.index(player)
-                    faces.append(acard.face())
                     if n == 0:
                         player.position = position
                         position += 1
         for n in xrange(Tourney.nboardcards):
             acard = self.deck.nextcard()
             self.board.append(acard)
-            faces.append(acard.face())
 
-
-        # Store faces for the rest of the deck
-        ndealt = len(faces)
-        log.logger.debug("Tourney.deal: dealt %d cards" % (ndealt,))
-        for n in xrange(52 - ndealt):
-            faces.append(self.deck.nextcard().face())
-
-        #record deck
-        try:
-            db = MySQLdb.connect(user=self.dbuser, passwd=self.dbpw, db=self.dbname)
-        except Exception, msg:
-            log.logger.error("Can't talk to database - exiting\n", msg)
-            self.pubout("Can't talk to the user database - panicing!")
-            sys.exit(1)
-
-        c = db.cursor()
-
-        c.execute("""INSERT into decks (timestamp, channel, c1, c2, c3, c4, c5,
-        c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20,
-        c21, c22, c23, c24, c25, c26, c27, c28, c29, c30, c31, c32, c33, c34,
-        c35, c36, c37, c38, c39, c40, c41, c42, c43, c44, c45, c46, c47, c48,
-        c49, c50, c51, c52) VALUES (%f, '%s', '%2s','%2s','%2s','%2s','%2s',
-        '%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s',
-        '%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s',
-        '%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s',
-        '%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s','%2s',
-        '%2s','%2s','%2s' )""" % (self.dbstamp, 'tourney', faces[0], faces[1],
-                                  faces[2], faces[3], faces[4], faces[5],
-                                  faces[6], faces[7], faces[8], faces[9],
-                                  faces[10], faces[11], faces[12], faces[13],
-                                  faces[14], faces[15], faces[16], faces[17],
-                                  faces[18], faces[19], faces[20], faces[21],
-                                  faces[22], faces[23], faces[24], faces[25],
-                                  faces[26], faces[27], faces[28], faces[29],
-                                  faces[30], faces[31], faces[32], faces[33],
-                                  faces[34], faces[35], faces[36], faces[37],
-                                  faces[38], faces[39], faces[40], faces[41],
-                                  faces[42], faces[43], faces[44], faces[45],
-                                  faces[46], faces[47], faces[48], faces[49],
-                                  faces[50], faces[51] ))
-
-        db.commit()
-        c.close()
-        db.close()
-            
     def winseatsort(self, plist):
         '''Sort the winners of a multiway pot clockwise from the dealer.'''
 
@@ -2134,9 +1849,8 @@ e' % (anick,))
         self.noteout(pid, 'Dealer commands:')
         self.noteout(pid, '----------------')
         self.noteout(pid, ' ')
-        self.noteout(pid, "join <password> - Attempt to join the next tournament.")
+        self.noteout(pid, "join - Attempt to join the next tournament.")
         self.noteout(pid, "quit - Quit immediately.  Any money you've put into the pot stays there.")
-        self.noteout(pid, "password <newpassword> - replace your password with newpassword.  You must be successfully joined to use this command.")
         self.noteout(pid, ' ')
         self.noteout(pid, "blind <amount> - Set the size of the small blind.")
         self.noteout(pid, "double <interval> [hands] - Set time interval (seconds) for doubling the blinds.  Optional 'hands' argument changes interval to the number of hands.")
@@ -2145,6 +1859,7 @@ e' % (anick,))
         self.noteout(pid, "abort - Abort the tournament.  Players will remain joined.")
         self.noteout(pid, ' ')
         self.noteout(pid, "check - Get a warning if there's a bet to you.")
+        self.noteout(pid, "color - Toggle colored cards.  This will break some GUIs.")
         self.noteout(pid, "fold - Fold at your earliest opportunity.")
         self.noteout(pid, "jam - Go all in.")
         self.noteout(pid, "pot - Call and raise the value of the pot.")

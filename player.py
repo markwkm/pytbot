@@ -56,7 +56,6 @@ class Player:
         self.action = 0
         self.inplay = 0
         self.vacation = 0
-        self.activity = ['','','','']
         self.position = 0
         self.cmd = Command()
         self.hand = Hand()

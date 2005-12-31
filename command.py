@@ -29,10 +29,11 @@ class Command:
         self.handsflag = False
 
         noarg = ['ABORT', 'BACK', 'BOARD', 'CARDS', 'CHECK', 'COLOR',
-                 'COMMANDS', 'FOLD', 'HELP', 'POSITION', 'QUIT',
+                 'COMMANDS', 'FOLD', 'HELP', 'JOIN', 'POSITION', 'QUIT',
                  'START', 'STATUS', 'UNDO']
 
-        chararg = ['JOIN', 'PASSWORD', 'REMIND', 'VACATION']
+        chararg = ['REMIND', 'VACATION']
+        
         intarg = ['BANKROLL', 'BET', 'BLIND', 'CALL', 'DOUBLE', 'MAKE',
                   'RAISE']
 
@@ -95,7 +96,7 @@ class Command:
         intargcmds = ['BET', 'CALL', 'MAKE', 'RAISE', 'BLIND',
                       'DOUBLE', 'BANKROLL']
 
-        txtargcmds = ['JOIN', 'WAIT', 'REMIND', 'PASSWORD']
+        txtargcmds = ['WAIT', 'REMIND']
 
         if self.cmd in intargcmds:
 
