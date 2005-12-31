@@ -332,7 +332,7 @@ class Tourney:
         else:
             msg += ' '
             msg += 'in the tournament.'
-            self.pubout(msg)
+        self.pubout(msg)
     
     def run(self, newhand = False):
         log.logger.debug('Tourney.run()')
