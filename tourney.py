@@ -331,7 +331,7 @@ class Tourney:
             msg += 's '
         else:
             msg += ' '
-            msg += 'in the tournament.'
+        msg += 'in the tournament.'
         self.pubout(msg)
     
     def run(self, newhand = False):
@@ -1283,19 +1283,17 @@ class Tourney:
         	if handstogo  ==  self.handsinterval:
         	    self.loblind *= 2
         	    self.hiblind = self.loblind * 2
-        	    blindmsg = 'Blinds will double in %d hands.' %\
+        	    blindmsg = 'in %d hands.' %\
         			self.handsinterval
         	else:
         	    if self.handnum > 1:
-        		blindmsg = 'Blinds will double '
         		if handstogo > 1:
-        		    blindmsg += 'in %d hands.' % (handstogo,)
+        		    blindmsg = 'in %d hands.' % (handstogo,)
         		else:
-        		    blindmsg += ' next hand.'
+        		    blindmsg = 'next hand.'
         			  
         	    else:
-        		blindmsg = 'Blinds will double in %d hands.' %\
-        			   (self.handsinterval,)
+        		blindmsg = 'in %d hands.' % (self.handsinterval,)
         
             else:
         	self.dt = datetime(2000, 1, 1)
@@ -1305,22 +1303,12 @@ class Tourney:
         	    self.loblind *= 2
         	    self.hiblind = self.loblind * 2
         	    self.timestamp = self.dt.now()
-        	    blindmsg = 'Blinds will double in %d seconds.' %\
-        		       self.blindinterval
+        	    blindmsg = 'in %d seconds.' % self.blindinterval
         	else:
-        	    blindmsg = 'Blinds will double in %d seconds.' % (self.blindinterval - timexp)
+        	    blindmsg = 'in %d seconds.' % (self.blindinterval - timexp)
+                    self.pubout('The blinds are currently $%d and $%d and will double %s' % (self.loblind, self.hiblind, blindmsg))
         
-        
-        
-            self.pubout(' ')
-            self.pubout('The blinds are currently $%d and $%d.' %\
-        		(self.loblind, self.hiblind))
-        
-            self.pubout(blindmsg)
-            self.pubout(' ')
-            
             self.bbacted = False
-        
         
             for player in self.players:
         	player.cmd = Command()
@@ -1332,7 +1320,6 @@ class Tourney:
         	player.lastbet = 0
         	player.folded = False
         	player.allin = False
-        	player.activity = ['','','','']
         	player.hand.muck()
         	if player.vacation:
         	    player.cmd.cmd = 'FOLD'
@@ -1539,9 +1526,6 @@ class Tourney:
         if self.players[self.bb].action > self.maxaction:
             self.maxaction = self.players[self.bb].action
         self.minraise = self.hiblind
-        
-        self.players[self.sb].activity[0] = 'B'
-        self.players[self.bb].activity[0] = 'B'
         
     def nonvacation(self):
         'Count how many players are on vacation'

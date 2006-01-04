@@ -80,13 +80,29 @@ class TBot(irc.IRCClient):
             print "Cant open config file: ", msg
             sys.exit(1)
             
-        self.nickname = conf.get('IRC', 'nick')
-        self.idpass = conf.get('IRC', 'idpass')
-        self.idnick = conf.get('IRC', 'idnick')
-        self.opernick = conf.get('IRC', 'opernick')
-        self.operpass = conf.get('IRC', 'operpass')
-        self.versionName = conf.get('version', 'name')
-        self.versionNum = conf.get('version', 'number')
+        if conf.has_option('IRC', 'nick'):
+            self.nickname = conf.get('IRC', 'nick')
+        if conf.has_option('IRC', 'idpass'):
+            self.idpass = conf.get('IRC', 'idpass')
+        if conf.has_option('IRC', 'idnick'):
+            self.idnick = conf.get('IRC', 'idnick')
+
+        if conf.has_option('IRC', 'opernick'):
+            self.opernick = conf.get('IRC', 'opernick')
+        if conf.has_option('IRC', 'operpass'):
+            self.operpass = conf.get('IRC', 'operpass')
+
+        if conf.has_option('IRC', 'ircpass'):
+            self.password = conf.get('IRC', 'ircpass')
+        if conf.has_option('IRC', 'minusmodes'):
+            self.minusmodes = conf.get('IRC', 'minusmodes')
+        if conf.has_option('IRC', 'plusmodes'):
+                self.plusmodes = conf.get('IRC', 'plusmodes')
+
+        if conf.has_option('version', 'name'):
+            self.versionName = conf.get('version', 'name')
+        if conf.has_option('version', 'number'):
+            self.versionNum = conf.get('version', 'number')
         self.versionEnv = sys.platform
 
         self.tourney = Tourney(self.pubout, self.privout, self.noteout)
@@ -114,8 +130,18 @@ class TBot(irc.IRCClient):
         log.logger.info('[I have joined %s]' % (channel,))
         self.channel = channel
 
-	self.sendLine('OPER %s %s' % (self.opernick, self.operpass))
-	self.privout('%s' % (self.idnick,), 'identify %s' % (self.idpass,))
+        if hasattr(self, 'opernick') and hassattr(self, 'operpass'):
+            self.sendLine('OPER %s %s' % (self.opernick, self.operpass))
+	
+        # Identify to nickserv
+        if hasattr(self, 'idnick') and hasattr(self, 'idpass'):
+            self.privout('%s' % (self.idnick,), 'identify %s' % (self.idpass,))
+
+        # Set modes
+        if hasattr(self, 'plusmodes'):
+            self.mode(channel, True, self.plusmodes)
+        if hasattr(self, 'minusmodes'):
+            self.mode(channel, False, self.minusmodes)
 
     def noticed(self, user, channel, msg):
         """This will get called when the bot receives a NOTICE."""
