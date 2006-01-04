@@ -256,11 +256,20 @@ if __name__ == '__main__':
     host = conf.get('IRC', 'host')
     port  = conf.getint('IRC', 'port')
 
+    localport = None
+    localaddr = None
+    if conf.has_option('IRC', 'localport'):
+        localport  = conf.getint('IRC', 'localport')
+    if conf.has_option('IRC', 'localaddr'):
+        localaddr  = conf.get('IRC', 'localaddr')
+
     # create factory protocol and application
     f = TBotFactory(channel, 'UNUSED')
 
     # connect factory to this host and port
-    reactor.connectTCP(host, port, f)
-
+    if localaddr and localport:
+        reactor.connectTCP(host, port, f, bindAddress=(localaddr, localport))
+    else:
+        reactor.connectTCP(host, port, f)
     # run bot
     reactor.run()
