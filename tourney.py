@@ -1306,7 +1306,8 @@ class Tourney:
         	    blindmsg = 'in %d seconds.' % self.blindinterval
         	else:
         	    blindmsg = 'in %d seconds.' % (self.blindinterval - timexp)
-                    self.pubout('The blinds are currently $%d and $%d and will double %s' % (self.loblind, self.hiblind, blindmsg))
+
+            self.pubout('The blinds are currently $%d and $%d and will double %s' % (self.loblind, self.hiblind, blindmsg))
         
             self.bbacted = False
         
