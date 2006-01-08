@@ -130,7 +130,7 @@ class TBot(irc.IRCClient):
         log.logger.info('[I have joined %s]' % (channel,))
         self.channel = channel
 
-        if hasattr(self, 'opernick') and hassattr(self, 'operpass'):
+        if hasattr(self, 'opernick') and hasattr(self, 'operpass'):
             self.sendLine('OPER %s %s' % (self.opernick, self.operpass))
 	
         # Identify to nickserv
