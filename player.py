@@ -51,6 +51,7 @@ class Player:
         self.busted = False
         self.quit = False
         self.allin = False
+        self.autofold = True
         self.won = 0
         self.lastbet = 0
         self.action = 0

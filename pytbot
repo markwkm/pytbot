@@ -173,6 +173,8 @@ class TBot(irc.IRCClient):
             else:
                 log.logger.debug('Tourneybot:%s' % cmd)
 
+                #FIXME: This should never be seen here as handflag is
+                #dependent on the game.
                 if cmd.handsflag:
                     self.tourney.handsflag = True
                 else:

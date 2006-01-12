@@ -91,11 +91,12 @@ class Tourney:
         actions = ['BET', 'CALL', 'CALLMAX', 'CHECK', 'FOLD', 'MAKE',
         'RAISE', 'UNDO', 'JAM', 'POT']
         
-        gamecmds = actions + ['ABORT', 'BACK', 'CARDS', 'COLOR', 'KICK',
-        'VACATION', 'REMIND', 'QUIT', 'POSITION', 'STACK']
+        gamecmds = actions + ['ABORT', 'AUTOFOLD', 'BACK', 'CARDS',
+                              'COLOR', 'KICK', 'VACATION', 'REMIND',
+                              'QUIT', 'POSITION', 'STACK']
 
         setupcmds = ['DOUBLE', 'BANKROLL', 'BLIND', 'START']
-        
+
         run = False
 
         c = cmd.cmd
@@ -105,12 +106,16 @@ class Tourney:
         if (c in gamecmds or c in setupcmds) and (p == None or p.busted):
             self.noteout(pid, 'You must be in the game to use the %s command.' % cmd.cmd)
 
+        # If you're all in, you're commited
         elif c in actions and p.allin:
             self.noteout(pid, "You're all in.  Command ignored.")
         
+        # If you've folded, I'm going to ignore you
         elif c in actions and p.folded:
             self.noteout(pid, "You're not involved in this hand.  %s command ignored." % c)
 
+        # Some commands should work while the games is on but also
+        # after joining and before the game begins.
         elif c in gamecmds and not self.playing:
             if c == 'QUIT':
                 msg = '%s has quit.  We now have %d player' %\
@@ -123,8 +128,29 @@ class Tourney:
                 msg += 'in the tournament.'
                 self.pubout(msg)
 
-            else:
-                self.privout(pid, 'There is currently no game.  %s command ignored.' % c)
+            elif c == 'AUTOFOLD':
+                self.doautofold(p)
+                
+            elif c == 'BACK':
+                if not p.vacation:
+                    self.noteout(pid, "You're not on vacation.  Command ignored.")
+                else:
+                    p.vacation = False
+                    self.pubout('%s is back from vacation!' % pid)
+
+            elif c == 'VACATION':
+                if cmd.arg == '':
+                    cmd.arg = pid
+                player = None
+                player = self.pfromnick(cmd.arg)
+                if player:
+                    if not player.vacation:
+                        self.pubout('%s has sent %s on vacation!' % (p.nick, player.nick))
+                        player.vacation = True
+                        player.autofold = False
+
+            elif c == 'COLOR':
+                self.docolor(pid)
                 
         elif c in setupcmds and self.playing:
             self.privout(pid, "%s can't be used while a game is being played." % cmd.cmd)
@@ -149,12 +175,7 @@ class Tourney:
             self.prettyprint(pid)
 
         elif c == 'COLOR':
-            if self.color:
-                self.pubout('%s has turned off colored cards.' % (pid,))
-            else:
-                self.pubout('%s has turned on colored cards.  Please complain loudly if this affects your ability to play.' % pid)
-                #self.pubout('The color command has been indefinitely disabled.  Colored cards can be viewed using a relatively simple client script.')
-            self.color = not self.color
+            self.docolor(pid)
 
         elif c == 'ABORT':
             self.pubout('%s has aborted the tournament!  Please finish this hand.' % pid)
@@ -312,6 +333,9 @@ class Tourney:
             else:
                 self.privout(bugee, "%s reminds you that it's your turn to act." % pid)
 
+        elif c == 'AUTOFOLD':
+             self.doautofold(p)
+
         elif c in actions:
             p.cmd = cmd
             if self.players.index(p) == self.next2act:
@@ -356,15 +380,16 @@ class Tourney:
             # Fold at the earliest opportunity.  Check if there's no bet.
             if p.cmd.cmd == 'FOLD':
 
-                if p.action >= self.curbet:
+                if self.next2act == self.bb:
+                    self.bbacted = True
+
+                if (p.action >= self.curbet) and not p.autofold:
                     if p.vacation:
                         log.logger.info('Tourney.run:%s is on vacation and checks' % p.nick)
                     else:
                         log.logger.info('Tourney.run:%s checks' % p.nick)
                     self.pubout('%s checks.' % p.nick)
                     p.cmd.cmd = 'FOLD'
-                    if self.next2act == self.bb:
-                        self.bbacted = True
                 else:
                     p.folded = True
                     p.cmd.cmd = 'NOOP'
@@ -847,7 +872,7 @@ class Tourney:
         else:
             log.logger.info('Tourney.RAISE:%s raises when not fully raised' %\
                             p.nick)
-            self.privout(p.nick, 'You were not fully raised and cannot raise.  Plase call or fold.')
+            self.privout(p.nick, 'You were not fully raised and cannot raise.  Please call or fold.')
 
             # Don't advance seat
             advseat = False
@@ -1845,6 +1870,7 @@ class Tourney:
         self.noteout(pid, ' ')
         self.noteout(pid, "check - Get a warning if there's a bet to you.")
         self.noteout(pid, "color - Toggle colored cards.  This will break some GUIs.")
+        self.noteout(pid, "autofold - Toggle fold behavior.  Either fold immediately or check when there's no bet.   Fold means fold by default.")
         self.noteout(pid, "fold - Fold at your earliest opportunity.")
         self.noteout(pid, "jam - Go all in.")
         self.noteout(pid, "pot - Call and raise the value of the pot.")
@@ -1885,4 +1911,17 @@ class Tourney:
             
 
 
+    def docolor(self, pid):
+        if self.color:
+            self.pubout('%s has turned off colored cards.' % (pid,))
+        else:
+            self.pubout('%s has turned on colored cards.  Please complain loudly if this affects your ability to play.' % pid)
+        self.color = not self.color
 
+    def doautofold(self, p):
+        p.autofold = not p.autofold
+        if p.autofold:
+            self.noteout(p.nick, "Okay.  Fold means fold.");
+        else:
+            self.noteout(p.nick, "Okay.  You will fold if there's a bet to you, but check otherwise.")
+            

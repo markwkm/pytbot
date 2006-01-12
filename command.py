@@ -28,9 +28,9 @@ class Command:
         self.arg = ''
         self.handsflag = False
 
-        noarg = ['ABORT', 'BACK', 'BOARD', 'CARDS', 'CHECK', 'COLOR',
-                 'COMMANDS', 'FOLD', 'HELP', 'JOIN', 'POSITION', 'QUIT',
-                 'START', 'STATUS', 'UNDO']
+        noarg = ['ABORT', 'AUTOFOLD', 'BACK', 'BOARD', 'CARDS', 'CHECK',
+                 'COLOR', 'COMMANDS', 'FOLD', 'HELP', 'JOIN',
+                 'POSITION', 'QUIT', 'START', 'STATUS', 'UNDO']
 
         chararg = ['REMIND', 'VACATION']
         
@@ -47,6 +47,8 @@ class Command:
                 if len(liszt) < 3:
                     if self.cmd == 'CALL':
                         self.cmd = 'CALLMAX'
+                    elif self.cmd == 'VACATION':
+                        pass
                     else:
                         self.arg = 'ERROR'
                 else:
