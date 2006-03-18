@@ -1362,6 +1362,7 @@ class Tourney:
         	# blind this hand. Set flag so the button doesn't move
         	# next hand.
         	if self.players[self.bb].busted:
+                    log.logger.debug('BB eliminated - no SB')
         	    self.nosb = True
         	    self.butflag = True
         	else:
@@ -1503,27 +1504,30 @@ class Tourney:
         log.logger.debug('Tourney.postblinds()')
         
         sbbr = self.players[self.sb].bankroll
-        if sbbr <= self.loblind:
-            self.players[self.sb].bankroll = 0
-            self.players[self.sb].inplay = sbbr
-            self.players[self.sb].action = sbbr
-            self.players[self.sb].allin = True
-            self.pot += sbbr
-            self.pubout('%s blinds $%d and is all in.  Pot is now $%d.' %\
-        		(self.players[self.sb].nick, sbbr, self.pot))
-            log.logger.info('%s blinds $%d and is all-in' %\
-        		    (self.players[self.sb].nick, sbbr))
-            self.sidepots = True
-        else:
-            self.players[self.sb].bankroll -= self.loblind
-            self.players[self.sb].inplay = self.loblind
-            self.players[self.sb].action = self.loblind
-            self.pot += self.loblind
-            self.pubout('%s blinds $%d.  Pot is now $%d.' %\
-        		(self.players[self.sb].nick, self.loblind, self.pot))
-            log.logger.info('%s blinds $%d' %\
-        		    (self.players[self.sb].nick,
-        		     self.loblind))
+        
+        if sbbr > 0:
+            if sbbr <= self.loblind:
+                self.players[self.sb].bankroll = 0
+                self.players[self.sb].inplay = sbbr
+                self.players[self.sb].action = sbbr
+                self.players[self.sb].allin = True
+                self.pot += sbbr
+                self.pubout('%s blinds $%d and is all in.  Pot is now $%d.' %\
+                            (self.players[self.sb].nick, sbbr, self.pot))
+                log.logger.info('%s blinds $%d and is all-in' %\
+                                (self.players[self.sb].nick, sbbr))
+                self.sidepots = True
+            else:
+                self.players[self.sb].bankroll -= self.loblind
+                self.players[self.sb].inplay = self.loblind
+                self.players[self.sb].action = self.loblind
+                self.pot += self.loblind
+                self.pubout('%s blinds $%d.  Pot is now $%d.' %\
+                            (self.players[self.sb].nick, self.loblind, self.pot))
+                log.logger.info('%s blinds $%d' %\
+                                (self.players[self.sb].nick,
+                                 self.loblind))
+                
         
         self.maxaction = self.players[self.sb].action
         bbbr = self.players[self.bb].bankroll
