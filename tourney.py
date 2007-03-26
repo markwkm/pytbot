@@ -1382,13 +1382,15 @@ class Tourney:
                     pass
                 else:
         
-                    # The small blind is last hand's big blind
-                    self.sb = self.bb
-        
                     # If the small blind was eliminated then the button
                     # stays put
                     if self.players[self.sb].busted:
+                        log.logger.debug('SB eliminated.  Holding button')
                         buttonadv = False
+                        
+                    # The small blind is last hand's big blind
+                    self.sb = self.bb
+                    log.logger.debug('Setting SB to %d' % (self.sb,))
         
                 # Who's in the big blind?
                 self.bb = self.nextactiveseat(self.bb)
@@ -1398,6 +1400,7 @@ class Tourney:
                 # Do not advance button if this is the second hand
                 # following the elimination of the big blind.
                 if self.butflag:
+                    log.logger.debug('Resetting Tourney.butflag')
                     self.butflag = False
                     buttonadv = False
         
@@ -1511,32 +1514,36 @@ class Tourney:
         
         log.logger.debug('Tourney.postblinds()')
         
-        sbbr = self.players[self.sb].bankroll
-        
-        if sbbr > 0:
-            if sbbr <= self.loblind:
-                self.players[self.sb].bankroll = 0
-                self.players[self.sb].inplay = sbbr
-                self.players[self.sb].action = sbbr
-                self.players[self.sb].allin = True
-                self.pot += sbbr
-                self.pubout('%s blinds $%d and is all in.  Pot is now $%d.' %\
-                            (self.players[self.sb].nick, sbbr, self.pot))
-                log.logger.info('%s blinds $%d and is all-in' %\
-                                (self.players[self.sb].nick, sbbr))
-                self.sidepots = True
-            else:
-                self.players[self.sb].bankroll -= self.loblind
-                self.players[self.sb].inplay = self.loblind
-                self.players[self.sb].action = self.loblind
-                self.pot += self.loblind
-                self.pubout('%s blinds $%d.  Pot is now $%d.' %\
-                            (self.players[self.sb].nick, self.loblind, self.pot))
-                log.logger.info('%s blinds $%d' %\
-                                (self.players[self.sb].nick,
-                                 self.loblind))
-                
-        
+        if self.nosb:
+            self.nosb = False;
+            log.logger.debug('BB eliminated.  Skipping SB')
+        else:
+            sbbr = self.players[self.sb].bankroll
+
+            if sbbr > 0:
+                if sbbr <= self.loblind:
+                    self.players[self.sb].bankroll = 0
+                    self.players[self.sb].inplay = sbbr
+                    self.players[self.sb].action = sbbr
+                    self.players[self.sb].allin = True
+                    self.pot += sbbr
+                    self.pubout('%s blinds $%d and is all in.  Pot is now $%d.' %\
+                                (self.players[self.sb].nick, sbbr, self.pot))
+                    log.logger.info('%s blinds $%d and is all-in' %\
+                                    (self.players[self.sb].nick, sbbr))
+                    self.sidepots = True
+                else:
+                    self.players[self.sb].bankroll -= self.loblind
+                    self.players[self.sb].inplay = self.loblind
+                    self.players[self.sb].action = self.loblind
+                    self.pot += self.loblind
+                    self.pubout('%s blinds $%d.  Pot is now $%d.' %\
+                                (self.players[self.sb].nick, self.loblind, self.pot))
+                    log.logger.info('%s blinds $%d' %\
+                                    (self.players[self.sb].nick,
+                                     self.loblind))
+
+
         self.maxaction = self.players[self.sb].action
         bbbr = self.players[self.bb].bankroll
         if bbbr <= self.hiblind:
@@ -1936,4 +1943,3 @@ class Tourney:
             self.noteout(p.nick, "Okay.  Fold means fold.");
         else:
             self.noteout(p.nick, "Okay.  You will fold if there's a bet to you, but check otherwise.")
-            
