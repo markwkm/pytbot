@@ -1688,11 +1688,11 @@ class Tourney:
         self.pubout('Board:      %s' % self.printboard(self.round, self.color))
         
         # strip color codes
-        buf = buf.replace("01,00", '')
-        buf = buf.replace("02,00", '')
-        buf = buf.replace("03,00", '')
-        buf = buf.replace("04,00", '')
-        buf = buf.replace("", '')
+        buf = buf.replace("\x02\x0301,00", '')
+        buf = buf.replace("\x02\x0302,00", '')
+        buf = buf.replace("\x02\x0303,00", '')
+        buf = buf.replace("\x02\x0304,00", '')
+        buf = buf.replace("\x0F", '')
         
         log.logger.info('%s' % buf)
         

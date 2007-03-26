@@ -1,5 +1,5 @@
 #
-#    Copyright (C) 2004 Paul Rotering
+#    Copyright (C) 2004-2007 Paul Rotering
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -70,21 +70,35 @@ class Card:
         s = Card.facesuit[self.suit()]
         f = r + s
 
-	#color = False
+        # Uncomment the next line to disable the color command
+	# color = False
 
+        
+        # FIXME:
+        # Unfortunately there is no standard for IRC color codes and I
+        # have reluctantly decided to drink the mIRC kool-aid.  I want
+        # the background for color cards to be white, so I use the
+        # mIRC color 03,00 for green, 02,00 for blue, etc.
+        #
+        # As reported by Max, some users of irssi see blinking
+        # foreground text when using these codes.  Max suggests using
+        # 15 for the background color to avoid this blinking.
+        # Personally, I find it too dark. You've got the source, so
+        # use whatever colors you want.  For the record, I don't see
+        # this effect with irssi on my system (pre-release Debian
+        # etch).
+        #
+        # One day there will be a flexible and somewhat programmable
+        # card display mechanism.  Today is not that day.
         if color:
             if s == 'c':
-                f = '03,00%c%c' % (r, s)
-                #f = '\033[47m\033[32m%c%c\033[0;0m' % (r, s)
+                f = '\x02\x0303,00%c%c\x0F' % (r, s)
             elif s == 'd':
-                f = '02,00%c%c' % (r, s)
-                #f = '\033[47m\033[34m%c%c\033[0;0m' % (r, s)
+                f = '\x02\x0302,00%c%c\x0F' % (r, s)
             elif s == 'h':
-                f = '04,00%c%c' % (r, s)
-                #f = '\033[47m\033[31m%c%c\033[0;0m' % (r, s)
+                f = '\x02\x0304,00%c%c\x0F' % (r, s)
             elif s == 's':
-                f = '01,00%c%c' % (r, s)
-                #f = '\033[47m\033[30m%c%c\033[0;0m' % (r, s)
+                f = '\x02\x0301,00%c%c\x0F' % (r, s)
                          
         return f
 

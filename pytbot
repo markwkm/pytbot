@@ -46,11 +46,7 @@ class TBot(irc.IRCClient):
         self.say(self.channel, msg)
 
         # strip color codes
-        msg = msg.replace("01,00", '')
-        msg = msg.replace("02,00", '')
-        msg = msg.replace("03,00", '')
-        msg = msg.replace("04,00", '')
-        msg = msg.replace("", '')
+        msg = stripcolors(msg)
 
         log.chatlog.info('[PUB->]%s' % (msg,))
 
@@ -61,11 +57,7 @@ class TBot(irc.IRCClient):
         #self.cprivmsg(self.channel, user, msg)
         
         # strip color codes
-        msg = msg.replace("01,00", '')
-        msg = msg.replace("02,00", '')
-        msg = msg.replace("03,00", '')
-        msg = msg.replace("04,00", '')
-        msg = msg.replace("", '')
+        msg = stripcolors(msg)
 
         log.chatlog.info('[PRV->%s]%s' % (user, msg))
 
@@ -74,11 +66,7 @@ class TBot(irc.IRCClient):
         #self.cnotice(self.channel, user, msg)
 
         # strip color codes
-        msg = msg.replace("01,00", '')
-        msg = msg.replace("02,00", '')
-        msg = msg.replace("03,00", '')
-        msg = msg.replace("04,00", '')
-        msg = msg.replace("", '')
+        msg = stripcolors(msg)
 
         log.chatlog.info('[NTE->%s]%s' % (user, msg))
 
@@ -274,6 +262,17 @@ class TBotFactory(protocol.ClientFactory):
     def clientConnectionFailed(self, connector, reason):
         log.logger.critical('connection failed: %s', (reason,))
         reactor.stop()
+
+def stripcolors(inmsg):
+
+    # strip color codes
+    inmsg = inmsg.replace("\x02\x0301,00", '')
+    inmsg = inmsg.replace("\x02\x0302,00", '')
+    inmsg = inmsg.replace("\x02\x0303,00", '')
+    inmsg = inmsg.replace("\x02\x0304,00", '')
+    inmsg = inmsg.replace("\x0F", '')
+    return inmsg
+
 
 if __name__ == '__main__':
 
