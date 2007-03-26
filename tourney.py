@@ -80,7 +80,7 @@ class Tourney:
         self.dt = datetime(2000, 1, 1)
         self.timestamp = self.dt.now()
         self.dbstamp = 0
-        self.tourneytstamp = 0	
+        self.tourneytstamp = 0  
         self.nplyin = [0, 0, 0, 0]
         self.potsize = [0, 0, 0, 0]
 
@@ -531,7 +531,7 @@ class Tourney:
             # Attempt to bet the value of the pot.  If player's bankroll
             # is less than pot, go all in.
             elif p.cmd.cmd == 'POT':
-                p.cmd.cmd = 'BET'
+                p.cmd.cmd = 'RAISE'
                 p.cmd.arg = self.pot + tocall
                 niterations -= 1
                 continue
@@ -970,7 +970,7 @@ class Tourney:
              buf += ''
         if nround == Tourney.FLOP:
             for n in xrange(3):
-	        buf += self.board[n].face(color) + ' '
+                buf += self.board[n].face(color) + ' '
         if nround == Tourney.TURN:
             for n in xrange(4):
                 buf += self.board[n].face(color) + ' '
@@ -1082,62 +1082,62 @@ class Tourney:
             
             # Compare hands and award pots
             log.logger.info('Hand over, current board is: %s' %\
-        		    self.printboard(self.round, False))
+                            self.printboard(self.round, False))
             if self.nactive() - self.nallin() > 1:
-        	self.pubout('Board:      %s' % self.printboard(self.round,
-        						       self.color))
+                self.pubout('Board:      %s' % self.printboard(self.round,
+                                                               self.color))
             self.pubout("Players' hands:")
             self.showhands()
         
             for pot in self.pots:
-        	winners = pot.award()
-        	nwinners = len(winners)
-        	share = pot.value / nwinners
-        	leftovers = pot.value % nwinners
+                winners = pot.award()
+                nwinners = len(winners)
+                share = pot.value / nwinners
+                leftovers = pot.value % nwinners
         
-        	log.logger.debug('pot %d: %d winners $%d share %d odd chips' %\
-        	      (self.pots.index(pot), nwinners, share, leftovers))
+                log.logger.debug('pot %d: %d winners $%d share %d odd chips' %\
+                      (self.pots.index(pot), nwinners, share, leftovers))
         
-        	# Sort winners for odd chip distribution
-        	if leftovers and nwinners > 1:
-        	    log.logger.debug('Distributing odd chips')
-        	    wseatorder = winners[:]
-        	    sorted = self.winseatsort(wseatorder)
-        	    
-        	for w in winners:
-        	    
-        	    myshare = share
+                # Sort winners for odd chip distribution
+                if leftovers and nwinners > 1:
+                    log.logger.debug('Distributing odd chips')
+                    wseatorder = winners[:]
+                    sorted = self.winseatsort(wseatorder)
+                    
+                for w in winners:
+                    
+                    myshare = share
         
-        	    # Distribute odd chip
-        	    if leftovers and w in sorted and \
-        		   (sorted.index(w) < leftovers):
-        		log.logger.debug('%s gets extra chip' % w.nick)
-        		myshare = share + 1
+                    # Distribute odd chip
+                    if leftovers and w in sorted and \
+                           (sorted.index(w) < leftovers):
+                        log.logger.debug('%s gets extra chip' % w.nick)
+                        myshare = share + 1
         
-        	    w.bankroll += myshare
-        	    w.won += myshare
-        	    if len(self.pots) == 1:
-        		log.logger.info('%s wins $%d with %s %s' %\
-        				(w.nick, myshare,
-        				 Hand.TYPE_STR[w.hand.type],
-        				 w.hand.rankorderstr()))
-        		self.pubout('High: %s wins $%d with %s %s.' %\
-        			    (w.nick, myshare,
-        			     Hand.TYPE_STR[w.hand.type],
-        			     w.hand.rankorderstr()))
-        	    else:
+                    w.bankroll += myshare
+                    w.won += myshare
+                    if len(self.pots) == 1:
+                        log.logger.info('%s wins $%d with %s %s' %\
+                                        (w.nick, myshare,
+                                         Hand.TYPE_STR[w.hand.type],
+                                         w.hand.rankorderstr()))
+                        self.pubout('High: %s wins $%d with %s %s.' %\
+                                    (w.nick, myshare,
+                                     Hand.TYPE_STR[w.hand.type],
+                                     w.hand.rankorderstr()))
+                    else:
         
-        		# print 'return uncalled foo' for a pot with a
-        		# single player
-        		if len(pot.players) == 1:
-        		    log.logger.info('Pot %d: uncalled $%d returned to %s' % (self.pots.index(pot), pot.value, w.nick))
-        		    self.pubout('%s wins $%d' % (w.nick, pot.value))
-        		else:
-        		    log.logger.info('Pot %d: %s wins $%d with %s %s' % (self.pots.index(pot), w.nick, myshare, Hand.TYPE_STR[w.hand.type], w.hand.rankorderstr()))
-        		    self.pubout('%s wins $%d with %s %s.' %\
-        				(w.nick, myshare,
-        				 Hand.TYPE_STR[w.hand.type],
-        				 w.hand.rankorderstr()))
+                        # print 'return uncalled foo' for a pot with a
+                        # single player
+                        if len(pot.players) == 1:
+                            log.logger.info('Pot %d: uncalled $%d returned to %s' % (self.pots.index(pot), pot.value, w.nick))
+                            self.pubout('%s wins $%d' % (w.nick, pot.value))
+                        else:
+                            log.logger.info('Pot %d: %s wins $%d with %s %s' % (self.pots.index(pot), w.nick, myshare, Hand.TYPE_STR[w.hand.type], w.hand.rankorderstr()))
+                            self.pubout('%s wins $%d with %s %s.' %\
+                                        (w.nick, myshare,
+                                         Hand.TYPE_STR[w.hand.type],
+                                         w.hand.rankorderstr()))
         return showhole
         
     def showhands(self):
@@ -1148,10 +1148,10 @@ class Tourney:
         aseat = first
         while next != first:
             log.logger.info('%-16s: %s' %\
-        		    (self.players[aseat].nick,
-        		     self.players[aseat].hand.showhole(False)))
+                            (self.players[aseat].nick,
+                             self.players[aseat].hand.showhole(False)))
             self.pubout('%-16s: %s' % (self.players[aseat].nick,
-        				 self.players[aseat].hand.showhole(self.color)))
+                                         self.players[aseat].hand.showhole(self.color)))
         
             self.fillhand(self.players[aseat])
             last = aseat
@@ -1185,7 +1185,7 @@ class Tourney:
             newas = (oldas + offset) % nplayers 
             if(not self.players[newas].folded and
                not self.players[newas].busted):
-        	return newas
+                return newas
         return oldas
         
     def tourneyover(self): return self.nlive() == 1
@@ -1197,12 +1197,12 @@ class Tourney:
             plist = self.activeplayers()
         
             if len(plist) > 1:
-        	log.logger.critical('Tourney.endtourney called with > 1 active player!')
+                log.logger.critical('Tourney.endtourney called with > 1 active player!')
         
             else:
-        	self.finishers.append(plist[0].nick)
-        	self.pubout('The tourney is over.  %s wins!  Congratulations!' % plist[0].nick)
-        	log.logger.info('Tourney.endtourney: Tourney over, %s wins' % plist[0].nick)
+                self.finishers.append(plist[0].nick)
+                self.pubout('The tourney is over.  %s wins!  Congratulations!' % plist[0].nick)
+                log.logger.info('Tourney.endtourney: Tourney over, %s wins' % plist[0].nick)
         
         else:
             log.logger.info('Tourney.endtourney: Tourney aborted!')
@@ -1253,7 +1253,7 @@ class Tourney:
         n = 0
         for p in self.players:
             if not p.busted:
-        	n += 1
+                n += 1
         return n
         
     def newhand(self):
@@ -1303,121 +1303,121 @@ class Tourney:
             oldstamp = self.dbstamp
             self.dbstamp = time.time()
             if self.dbstamp == oldstamp:
-        	log.logger.warning("Tourney timestamp collision.  Sleeping (%d)" %\
-        			   (self.dbstamp,))
-        	time.sleep(1)
-        	self.dbstamp = time.time()
+                log.logger.warning("Tourney timestamp collision.  Sleeping (%d)" %\
+                                   (self.dbstamp,))
+                time.sleep(1)
+                self.dbstamp = time.time()
         
             log.logger.info('New Hand:%d:%s' % (self.handnum, self.dbstamp))
         
             # Time to double blinds?
             if self.handsinterval > 0:
-        	handstogo = self.handsinterval - (self.handnum % self.handsinterval)
-        	if handstogo  ==  self.handsinterval:
-        	    self.loblind *= 2
-        	    self.hiblind = self.loblind * 2
-        	    blindmsg = 'in %d hands.' %\
-        			self.handsinterval
-        	else:
-        	    if self.handnum > 1:
-        		if handstogo > 1:
-        		    blindmsg = 'in %d hands.' % (handstogo,)
-        		else:
-        		    blindmsg = 'next hand.'
-        			  
-        	    else:
-        		blindmsg = 'in %d hands.' % (self.handsinterval,)
+                handstogo = self.handsinterval - (self.handnum % self.handsinterval)
+                if handstogo  ==  self.handsinterval:
+                    self.loblind *= 2
+                    self.hiblind = self.loblind * 2
+                    blindmsg = 'in %d hands.' %\
+                                self.handsinterval
+                else:
+                    if self.handnum > 1:
+                        if handstogo > 1:
+                            blindmsg = 'in %d hands.' % (handstogo,)
+                        else:
+                            blindmsg = 'next hand.'
+                                  
+                    else:
+                        blindmsg = 'in %d hands.' % (self.handsinterval,)
         
             else:
-        	self.dt = datetime(2000, 1, 1)
-        	self.dt = self.dt.now()
-        	timexp = (self.dt - self.timestamp).seconds
-        	if timexp >= self.blindinterval:
-        	    self.loblind *= 2
-        	    self.hiblind = self.loblind * 2
-        	    self.timestamp = self.dt.now()
-        	    blindmsg = 'in %d seconds.' % self.blindinterval
-        	else:
-        	    blindmsg = 'in %d seconds.' % (self.blindinterval - timexp)
+                self.dt = datetime(2000, 1, 1)
+                self.dt = self.dt.now()
+                timexp = (self.dt - self.timestamp).seconds
+                if timexp >= self.blindinterval:
+                    self.loblind *= 2
+                    self.hiblind = self.loblind * 2
+                    self.timestamp = self.dt.now()
+                    blindmsg = 'in %d seconds.' % self.blindinterval
+                else:
+                    blindmsg = 'in %d seconds.' % (self.blindinterval - timexp)
 
             self.pubout('The blinds are currently $%d and $%d and will double %s' % (self.loblind, self.hiblind, blindmsg))
         
             self.bbacted = False
         
             for player in self.players:
-        	player.cmd = Command()
-        	player.allin = 0
-        	player.inplay = 0
-        	player.action = 0
-        	player.won = 0
-        	player.oldbankroll = player.bankroll
-        	player.lastbet = 0
-        	player.folded = False
-        	player.allin = False
-        	player.hand.muck()
-        	if player.vacation:
-        	    player.cmd.cmd = 'FOLD'
+                player.cmd = Command()
+                player.allin = 0
+                player.inplay = 0
+                player.action = 0
+                player.won = 0
+                player.oldbankroll = player.bankroll
+                player.lastbet = 0
+                player.folded = False
+                player.allin = False
+                player.hand.muck()
+                if player.vacation:
+                    player.cmd.cmd = 'FOLD'
         
             self.board = []
             self.pot = 0
         
             self.pubout('Game #%d, %d players.  Dealing Holdem high' %\
-        		(self.handnum, self.nlive()))
+                        (self.handnum, self.nlive()))
         
             if self.nactive() >= 3:
         
-        	# If the big blind was eliminated then there's no small
-        	# blind this hand. Set flag so the button doesn't move
-        	# next hand.
-        	if self.players[self.bb].busted:
+                # If the big blind was eliminated then there's no small
+                # blind this hand. Set flag so the button doesn't move
+                # next hand.
+                if self.players[self.bb].busted:
                     log.logger.debug('BB eliminated - no SB')
-        	    self.nosb = True
-        	    self.butflag = True
-        	else:
-        	    self.nosb = False
+                    self.nosb = True
+                    self.butflag = True
+                else:
+                    self.nosb = False
         
-        	# Who's in the small blind?
-        	buttonadv = True
-        	if self.nosb:
-        	    pass
-        	else:
+                # Who's in the small blind?
+                buttonadv = True
+                if self.nosb:
+                    pass
+                else:
         
-        	    # The small blind is last hand's big blind
-        	    self.sb = self.bb
+                    # The small blind is last hand's big blind
+                    self.sb = self.bb
         
-        	    # If the small blind was eliminated then the button
-        	    # stays put
-        	    if self.players[self.sb].busted:
-        		buttonadv = False
+                    # If the small blind was eliminated then the button
+                    # stays put
+                    if self.players[self.sb].busted:
+                        buttonadv = False
         
-        	# Who's in the big blind?
-        	self.bb = self.nextactiveseat(self.bb)
+                # Who's in the big blind?
+                self.bb = self.nextactiveseat(self.bb)
         
-        	# Button, button, who gets the button?
+                # Button, button, who gets the button?
         
-        	# Do not advance button if this is the second hand
-        	# following the elimination of the big blind.
-        	if self.butflag:
-        	    self.butflag = False
-        	    buttonadv = False
+                # Do not advance button if this is the second hand
+                # following the elimination of the big blind.
+                if self.butflag:
+                    self.butflag = False
+                    buttonadv = False
         
-        	if buttonadv:
-        	    self.button = self.nextactiveseat(self.button)
+                if buttonadv:
+                    self.button = self.nextactiveseat(self.button)
         
-        	else:
+                else:
         
-        	    # If the player with the button is eliminated and
-        	    # we're not moving the button, then the button moves
-        	    # *backward* one seat
-        	    if self.players[self.button].busted:
-        		self.button = self.prevactiveseat(self.button)
+                    # If the player with the button is eliminated and
+                    # we're not moving the button, then the button moves
+                    # *backward* one seat
+                    if self.players[self.button].busted:
+                        self.button = self.prevactiveseat(self.button)
         
             else:
         
-        	# Heads-up
-        	self.bb = self.nextactiveseat(self.bb)
-        	self.sb = self.nextactiveseat(self.bb)
-        	self.button = self.sb
+                # Heads-up
+                self.bb = self.nextactiveseat(self.bb)
+                self.sb = self.nextactiveseat(self.bb)
+                self.button = self.sb
         
             self.next2act = self.nextactiveseat(self.bb)
         
@@ -1431,9 +1431,9 @@ class Tourney:
             self.round = 0
             
             if sys.platform.startswith('linux'):
-        	self.deck.shuffle2(0)
+                self.deck.shuffle2(0)
             else:
-        	self.deck.shuffle(0)
+                self.deck.shuffle(0)
             self.deal()
         
             playernum = 1
@@ -1441,16 +1441,16 @@ class Tourney:
             playerconv = ""
             nicklist = ""
             for p in self.players:
-        	if not p.busted:
-        	    self.noteout(p.nick, 'Your hole cards are: %s' %\
-        			 p.hand.showhole(self.color))
+                if not p.busted:
+                    self.noteout(p.nick, 'Your hole cards are: %s' %\
+                                 p.hand.showhole(self.color))
         
-        	    # build strings for SQL query
-        	    playernums += "player%d," % (playernum,)
-        	    playernum += 1
-        	    playerconv += "%s,"
-        	    nicklist += "'%s'," % (p.nick,)
-        	    
+                    # build strings for SQL query
+                    playernums += "player%d," % (playernum,)
+                    playernum += 1
+                    playerconv += "%s,"
+                    nicklist += "'%s'," % (p.nick,)
+                    
             playernums = playernums.rstrip(',')
             playerconv = playerconv.rstrip(',')
             nicklist = nicklist.rstrip(',')
@@ -1460,7 +1460,7 @@ class Tourney:
             log.logger.debug('query:%s' % (query,))
         
             data = (self.dbstamp, self.nlive()) + tuple(nicklist.split(','))
-        	    
+                    
             log.logger.debug('data:%s' % (data,))
         
             self.nplyin = [0, 0, 0, 0]
@@ -1483,24 +1483,24 @@ class Tourney:
         msg = ''
         for p in self.players:
             if p.busted:
-        	continue
+                continue
             nout += 1
             if p.vacation:
-        	if self.button == self.players.index(p):
-        	    dealvac = 'VB'
-        	else:
-        	    dealvac = 'V '
+                if self.button == self.players.index(p):
+                    dealvac = 'VB'
+                else:
+                    dealvac = 'V '
             elif self.button == self.players.index(p):
-        	dealvac = 'B-'
+                dealvac = 'B-'
         
             msg += '%2s%-9s%7d   ' % (dealvac, p.nick, p.bankroll)
             if nout == 3:
-        	self.pubout(msg)
-        	dealvac = '  '
-        	msg = ''
-        	nout = 0
+                self.pubout(msg)
+                dealvac = '  '
+                msg = ''
+                nout = 0
             else:
-        	dealvac = '  '
+                dealvac = '  '
         
         msg = msg.rstrip()
         if msg:
@@ -1546,9 +1546,9 @@ class Tourney:
             self.players[self.bb].allin = True
             self.pot += bbbr
             self.pubout('%s blinds $%d and is all in.  Pot is now $%d.' %\
-        		(self.players[self.bb].nick, bbbr, self.pot))
+                        (self.players[self.bb].nick, bbbr, self.pot))
             log.logger.info('%s blinds $%d and is all-in' %\
-        		    (self.players[self.bb].nick, bbbr))
+                            (self.players[self.bb].nick, bbbr))
             self.sidepots = True
         else:
             self.players[self.bb].bankroll -= self.hiblind
@@ -1556,10 +1556,10 @@ class Tourney:
             self.players[self.bb].action = self.hiblind
             self.pot += self.hiblind
             self.pubout('%s blinds $%d.  Pot is now $%d.' %\
-        		(self.players[self.bb].nick, self.hiblind, self.pot))
+                        (self.players[self.bb].nick, self.hiblind, self.pot))
             log.logger.info('%s blinds $%d' %\
-        		    (self.players[self.bb].nick,
-        		     self.hiblind))
+                            (self.players[self.bb].nick,
+                             self.hiblind))
         
         if self.players[self.bb].action > self.maxaction:
             self.maxaction = self.players[self.bb].action
@@ -1573,7 +1573,7 @@ class Tourney:
         n = 0
         for p in self.players:
             if p.vacation:
-        	n += 1
+                n += 1
         return n
         
     def nactive(self):
@@ -1584,7 +1584,7 @@ class Tourney:
         n = 0
         for p in self.players:
             if p.active():
-        	n += 1
+                n += 1
         return n
         
     def nallin(self):
@@ -1595,7 +1595,7 @@ class Tourney:
         n = 0
         for p in self.players:
             if p.allin:
-        	n += 1
+                n += 1
         return n
         
     def nquitters(self):
@@ -1604,7 +1604,7 @@ class Tourney:
         nquitters = 0
         for p in self.players:
             if p.quit:
-        	nquitters += 1
+                nquitters += 1
         
         return nquitters
         
@@ -1615,7 +1615,7 @@ class Tourney:
         if self.round == Tourney.RIVER:
             self.endhand()
             if not self.playing:
-        	return
+                return
             self.newhand()
             return
         
@@ -1635,7 +1635,7 @@ class Tourney:
             self.flipout()
             self.endhand()
             if not self.playing:
-        	return
+                return
             self.newhand()
             return
         
@@ -1654,9 +1654,9 @@ class Tourney:
         while not goodbettor:
             self.lastbettor = self.nextactiveseat(self.lastbettor)
             if self.players[self.lastbettor].allin:
-        	continue
+                continue
             else:
-        	goodbettor = True
+                goodbettor = True
         
         self.next2act = self.lastbettor
         
@@ -1670,7 +1670,7 @@ class Tourney:
         if self.round == Tourney.PREFLOP:
             buf += 'Flop : '
             for i in xrange(3):
-        	buf += self.board[i].face(self.color) + ' '
+                buf += self.board[i].face(self.color) + ' '
             self.potsize[Tourney.FLOP-1] = self.pot
             self.nplyin[Tourney.FLOP-1] = self.nactive()
         elif self.round == Tourney.FLOP:
@@ -1725,7 +1725,7 @@ class Tourney:
             playernum += 1
             playerconv += "%s,"
             nicklist += "'%s'," % (p.nick,)
-        	    
+                    
         playernums = playernums.rstrip(',')
         playerconv = playerconv.rstrip(',')
         nicklist = nicklist.rstrip(',')

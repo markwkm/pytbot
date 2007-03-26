@@ -151,7 +151,7 @@ class TBot(irc.IRCClient):
 
         if hasattr(self, 'opernick') and hasattr(self, 'operpass'):
             self.sendLine('OPER %s %s' % (self.opernick, self.operpass))
-	
+        
         # Identify to nickserv
         if hasattr(self, 'idnick') and hasattr(self, 'idpass'):
             self.privout('%s' % (self.idnick,), 'identify %s' % (self.idpass,))

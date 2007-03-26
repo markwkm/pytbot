@@ -1,5 +1,5 @@
 #
-#    Copyright (C) 2004 Paul Rotering
+#    Copyright (C) 2004-2007 Paul Rotering
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -30,4 +30,3 @@ cformat = logging.Formatter('%(message)s')
 chathdlr.setFormatter(cformat)
 chatlog.addHandler(chathdlr)
 chatlog.setLevel(logging.INFO)
-

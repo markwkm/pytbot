@@ -1,5 +1,5 @@
 #
-#    Copyright (C) 2004 Paul Rotering
+#    Copyright (C) 2004-2007 Paul Rotering
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -131,4 +131,3 @@ if __name__ == '__main__':
             print foo.nextcard().face(),
             if not (card + 1) % 13:
                 print
-

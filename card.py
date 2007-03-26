@@ -71,7 +71,7 @@ class Card:
         f = r + s
 
         # Uncomment the next line to disable the color command
-	# color = False
+        # color = False
 
         
         # FIXME:
