@@ -1,5 +1,5 @@
 #
-#    Copyright (C) 2004 Paul Rotering
+#    Copyright (C) 2004-2007 Paul Rotering
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -14,7 +14,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
-import log
+import pickle
 import sys
 import time
 from string import letters, digits
@@ -23,6 +23,7 @@ from random import choice
 
 from command import Command
 from deck import Deck
+import log
 from player import Player
 from pot import Pot
 
@@ -341,8 +342,10 @@ class Tourney:
             if self.players.index(p) == self.next2act:
                 run = True
 
-        if self.playing and run:
-            self.run()
+        if self.playing:
+            file('t.backup', 'w').write(pickle.dumps(self))
+            if run:
+                self.run()
 
     def joingame(self, nick):
         log.logger.debug('Tourney.joingame()')
@@ -360,6 +363,8 @@ class Tourney:
     
     def run(self, newhand = False):
         log.logger.debug('Tourney.run()')
+
+        file('t.backup', 'w').write(pickle.dumps(self))
 
         p = self.players[self.next2act]
 
@@ -1236,6 +1241,9 @@ class Tourney:
         
         if hasattr(self, 'sidepots'):
             delattr(self, 'sidepots')
+
+        file('t.backup', 'w').write(pickle.dumps(self))
+
         
     def nlive(self):
         'Count how many unbusted players are at the table.'

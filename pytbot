@@ -19,6 +19,7 @@ from twisted.protocols import irc
 from twisted.internet import reactor, protocol
 
 import ConfigParser
+import pickle
 import sys
 import time
 
@@ -72,6 +73,8 @@ class TBot(irc.IRCClient):
         log.chatlog.info('[NTE->%s]%s' % (user, msg))
 
     def __init__(self):
+        self.restorefile = ''
+
         conf = ConfigParser.SafeConfigParser()
         
         try:
@@ -103,9 +106,27 @@ class TBot(irc.IRCClient):
             self.versionName = conf.get('version', 'name')
         if conf.has_option('version', 'number'):
             self.versionNum = conf.get('version', 'number')
+
+
+        if conf.has_option('restore', 'filename'):
+            self.restorefile = conf.get('restore', 'filename')
+
         self.versionEnv = sys.platform
 
-        self.tourney = Tourney(self.pubout, self.privout, self.noteout)
+        if(self.restorefile):
+            try:
+                tf = file(self.restorefile, 'r')
+            except IOError:
+                print 'Problem opening backup'
+                sys.exit(1)
+            tstr = ''.join(tf.readlines())
+            self.tourney = pickle.loads(tstr)
+            self.tourney.pubout = self.pubout
+            self.tourney.privout = self.privout
+            self.tourney.noteout = self.noteout
+
+        else:
+            self.tourney = Tourney(self.pubout, self.privout, self.noteout)
 
     #### connection callbacks
     def connectionMade(self):
