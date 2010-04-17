@@ -57,7 +57,6 @@ class Tourney:
         self.loblind = 10
         self.hiblind = 20
         self.bankroll = 1000
-        self.maxbankroll = 434000 # br needs to fit in 7 spaces
         self.blindinterval = 300
         self.handnum = 0
         self.handsflag = False
@@ -274,8 +273,6 @@ class Tourney:
                 self.privout(pid, 'bankroll must be at least $1')
             else:
                 self.bankroll = cmd.arg
-                if self.bankroll > self.maxbankroll:
-                    self.bankroll = self.maxbankroll
                 self.pubout('%s set the initial bankroll to $%d' %\
                             (cmd.id, self.bankroll))
 
@@ -1118,6 +1115,8 @@ e' % (anick,))
             if p.quit:
                 self.pubout('%s has quit.' % p.nick)
                 quitters.append(p)
+            p.cmd.cmd = 'NOOP'
+            p.cmd.arg = ''
 
         if len(quitters) > 0:
             quitters.sort(Player.oldbrsort)
@@ -1381,7 +1380,6 @@ e' % (anick,))
         self.loblind = 10
         self.hiblind = 20
         self.bankroll = 1000
-        self.maxbankroll = 434000 # br needs to fit in 7 spaces
         self.blindinterval = 300
         self.handnum = 0
         self.handsflag = False
