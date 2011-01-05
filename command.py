@@ -29,10 +29,10 @@ class Command:
         self.handsflag = False
 
         noarg = ['ABORT', 'AUTOFOLD', 'BACK', 'BOARD', 'CARDS', 'CHECK',
-                 'COLOR', 'COMMANDS', 'FOLD', 'HELP', 'JOIN',
+                 'COLOR', 'COMMANDS', 'FOLD', 'JOIN',
                  'POSITION', 'QUIT', 'START', 'STATUS', 'UNDO']
 
-        chararg = ['REMIND', 'VACATION']
+        chararg = ['HELP', 'REMIND', 'VACATION']
         
         intarg = ['BANKROLL', 'BET', 'BLIND', 'CALL', 'DOUBLE', 'MAKE',
                   'RAISE']

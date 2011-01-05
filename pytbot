@@ -187,7 +187,8 @@ class TBot(irc.IRCClient):
         if len(l) > 1 and l[0] == 'p':
 
             cmd = Command(user, l)
-            if cmd.arg == 'ERROR':
+            # This hack allows HELP to take 0 or 1 argument.
+            if cmd.arg == 'ERROR' and cmd.cmd != 'HELP':
                 self.privout(user,'Bad or missing argument')
             else:
                 log.logger.debug('Tourneybot:%s' % cmd)

@@ -157,7 +157,7 @@ class Tourney:
             self.privout(pid, "%s can't be used while a game is being played." % cmd.cmd)
 
         elif c == 'HELP' or c == 'COMMANDS':
-            self.dohelp(pid)
+            self.dohelp(pid, cmd.arg)
 
         elif c == 'JOIN':
             if self.ingame(pid):
@@ -1873,40 +1873,84 @@ class Tourney:
                 newas -= 1
         return oldas
 
-    def dohelp(self, pid):
+    def dohelp(self, pid, arg):
 
-        self.noteout(pid, 'Dealer commands:')
-        self.noteout(pid, '----------------')
-        self.noteout(pid, ' ')
-        self.noteout(pid, "join - Attempt to join the next tournament.")
-        self.noteout(pid, "quit - Quit immediately.  Any money you've put into the pot stays there.")
-        self.noteout(pid, ' ')
-        self.noteout(pid, "blind <amount> - Set the size of the small blind.")
-        self.noteout(pid, "double <interval> [hands] - Set time interval (seconds) for doubling the blinds.  Optional 'hands' argument changes interval to the number of hands.")
-        self.noteout(pid, "bankroll <amount> - Set the size of the initial bankroll for all players.")
-        self.noteout(pid, "start - Start the tournament.  There must be 2-23 players joined.")
-        self.noteout(pid, "abort - Abort the tournament.  Players will remain joined.")
-        self.noteout(pid, ' ')
-        self.noteout(pid, "check - Get a warning if there's a bet to you.")
-        self.noteout(pid, "color - Toggle colored cards.  This will break some GUIs.")
-        self.noteout(pid, "autofold - Toggle fold behavior.  Either fold immediately or check when there's no bet.   Fold means fold by default.")
-        self.noteout(pid, "fold - Fold at your earliest opportunity.")
-        self.noteout(pid, "jam - Go all in.")
-        self.noteout(pid, "pot - Call and raise the value of the pot.")
-        self.noteout(pid, "call [amount] - Call any bet if you don't specify amount.")
-        self.noteout(pid, "make <amount> - Make the bet <amount>.  Will call or raise depending on amount.")
-        self.noteout(pid, "raise <amount> - Attempt to raise <amount>.")
-        self.noteout(pid, "undo - Undo any advance action.")        
-        self.noteout(pid, ' ')
-        self.noteout(pid, "vacation [nick] - Without an argument, send yourself on vacation.  Otherwise, send nick on vacation.")
-        self.noteout(pid, "back - come back from vacation.  You can only bring yourself back.")
-        self.noteout(pid, "remind <nick> - Remind nick that it's their turn to act.")
-        self.noteout(pid, ' ')
-        self.noteout(pid, "cards - Look at your hole cards.")
-        self.noteout(pid, "board - Look at the board.")
-        self.noteout(pid, "status - Print WRGPT-style status message.")
-        self.noteout(pid, ' ')
-        self.noteout(pid, "commands - List of dealer commands (*this* list!)")
+        #self.noteout(pid, 'Dealer commands:')
+        #self.noteout(pid, '----------------')
+        #self.noteout(pid, ' ')
+        if arg == 'ERROR' or arg == 'commands':
+            # Stupid hack, if arg is 'ERROR' then no argument was given to help
+            self.noteout(pid, 'Dealer commands: join, quit, blind, double, ' \
+                              'bankroll, start, abort, check, color, ' \
+                              'autofold, fold, jam, pot, call, make, raise, ' \
+                              'undo, vacation, back, remind, cards, board, ' \
+                              'status, commands')
+            self.noteout(pid, 'For more details: p help <command>')
+        elif arg == 'join':
+            self.noteout(pid, "join - Attempt to join the next tournament.")
+        elif arg == 'quit':
+            self.noteout(pid, "quit - Quit immediately.  Any money you've " \
+                              "put into the pot stays there.")
+        elif arg == 'blind':
+            self.noteout(pid, "blind <amount> - Set the size of the small " \
+                              "blind.")
+        elif arg == 'double':
+            self.noteout(pid, "double <interval> [hands] - Set time " \
+                              "interval (seconds) for doubling the blinds.  " \
+                              "Optional 'hands' argument changes interval " \
+                              "to the number of hands.")
+        elif arg == 'bankroll':
+            self.noteout(pid, "bankroll <amount> - Set the size of the " \
+                              "initial bankroll for all players.")
+        elif arg == 'start':
+            self.noteout(pid, "start - Start the tournament.  There must be " \
+                              "2-23 players joined.")
+        elif arg == 'abort':
+            self.noteout(pid, "abort - Abort the tournament.  Players will " \
+                              "remain joined.")
+        elif arg == 'check':
+            self.noteout(pid, "check - Get a warning if there's a bet to you.")
+        elif arg == 'color':
+            self.noteout(pid, "color - Toggle colored cards.  This will " \
+                              "break some GUIs.")
+        elif arg == 'autofold':
+            self.noteout(pid, "autofold - Toggle fold behavior.  Either " \
+                              "fold immediately or check when there's no " \
+                              "bet.   Fold means fold by default.")
+        elif arg == 'fold':
+            self.noteout(pid, "fold - Fold at your earliest opportunity.")
+        elif arg == 'jam':
+            self.noteout(pid, "jam - Go all in.")
+        elif arg == 'pot':
+            self.noteout(pid, "pot - Call and raise the value of the pot.")
+        elif arg == 'call':
+            self.noteout(pid, "call [amount] - Call any bet if you don't " \
+                              "specify amount.")
+        elif arg == 'make':
+            self.noteout(pid, "make <amount> - Make the bet <amount>.  Will " \
+                              "call or raise depending on amount.")
+        elif arg == 'raise':
+            self.noteout(pid, "raise <amount> - Attempt to raise <amount>.")
+        elif arg == 'undo':
+            self.noteout(pid, "undo - Undo any advance action.")
+        elif arg == 'vacation':
+            self.noteout(pid, "vacation [nick] - Without an argument, send " \
+                              "yourself on vacation.  Otherwise, send nick " \
+                              "on vacation.")
+        elif arg == 'back':
+            self.noteout(pid, "back - come back from vacation.  You can " \
+                              "only bring yourself back.")
+        elif arg == 'remind':
+            self.noteout(pid, "remind <nick> - Remind nick that it's their " \
+                              "turn to act.")
+        elif arg == 'cards':
+            self.noteout(pid, "cards - Look at your hole cards.")
+        elif arg == 'board':
+            self.noteout(pid, "board - Look at the board.")
+        elif arg == 'status':
+            self.noteout(pid, "status - Print WRGPT-style status message.")
+        else:
+            self.noteout(pid, 'Unrecognized command: %s' % arg)
 
     def position(self, player):
         '''Return the position of player. Positions numbers starts at
